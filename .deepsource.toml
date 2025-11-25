@@ -1,0 +1,18 @@
+version = 1
+
+test_patterns = [
+  "**/*_test.go",
+  "test/**"
+]
+
+[[analyzers]]
+name = "test-coverage"
+
+[[analyzers]]
+name = "go"
+
+  [analyzers.meta]
+  import_root = "github.com/marcschaeferger-org/rsyslog_exporter"
+
+[[code_formatters]]
+name = "gofmt"
