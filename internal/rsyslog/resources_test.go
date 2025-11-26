@@ -82,156 +82,41 @@ func TestResourceToPoints(t *testing.T) {
 	}
 	points := pstat.ToPoints()
 
-	point := points[0]
-	if want, got := "resource_utime", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	type expectation struct {
+		idx        int
+		name       string
+		value      int64
+		metricType model.PointType
+		labelValue string
+	}
+	expected := []expectation{
+		{0, "resource_utime", 10, model.Counter, "resource-usage"},
+		{1, "resource_stime", 20, model.Counter, "resource-usage"},
+		{2, "resource_maxrss", 30, model.Gauge, "resource-usage"},
+		{3, "resource_minflt", 40, model.Counter, "resource-usage"},
+		{4, "resource_majflt", 50, model.Counter, "resource-usage"},
+		{5, "resource_inblock", 60, model.Counter, "resource-usage"},
+		{6, "resource_oublock", 70, model.Counter, "resource-usage"},
+		{7, "resource_nvcsw", 80, model.Counter, "resource-usage"},
+		{8, "resource_nivcsw", 90, model.Counter, "resource-usage"},
 	}
 
-	if want, got := int64(10), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[1]
-	if want, got := "resource_stime", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(20), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[2]
-	if want, got := "resource_maxrss", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(30), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Gauge, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[3]
-	if want, got := "resource_minflt", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(40), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[4]
-	if want, got := "resource_majflt", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(50), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[5]
-	if want, got := "resource_inblock", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(60), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[6]
-	if want, got := "resource_oublock", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(70), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[7]
-	if want, got := "resource_nvcsw", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(80), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[8]
-	if want, got := "resource_nivcsw", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(90), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "resource-usage", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	for _, exp := range expected {
+		if exp.idx >= len(points) {
+			t.Fatalf("expected point index %d to exist", exp.idx)
+		}
+		pt := points[exp.idx]
+		if pt.Name != exp.name {
+			t.Errorf("idx %d: want name %s got %s", exp.idx, exp.name, pt.Name)
+		}
+		if pt.Value != exp.value {
+			t.Errorf("%s: want value %d got %d", exp.name, exp.value, pt.Value)
+		}
+		if pt.Type != exp.metricType {
+			t.Errorf("%s: want type %d got %d", exp.name, exp.metricType, pt.Type)
+		}
+		if pt.LabelValue != exp.labelValue {
+			t.Errorf("%s: want label %s got %s", exp.name, exp.labelValue, pt.LabelValue)
+		}
 	}
 }

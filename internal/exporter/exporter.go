@@ -46,123 +46,102 @@ func New() *Exporter { // exported for tests
 	return newExporter()
 }
 
+// decoder turns a raw impstats JSON buffer into points.
+type decoder func([]byte) ([]*model.Point, error)
+
+// statDecoders maps stat Types to their respective decoding functions.
+var statDecoders = map[rsyslog.Type]decoder{
+	rsyslog.TypeAction: func(b []byte) ([]*model.Point, error) {
+		a, err := rsyslog.NewActionFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return a.ToPoints(), nil
+	},
+	rsyslog.TypeInput: func(b []byte) ([]*model.Point, error) {
+		i, err := rsyslog.NewInputFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return i.ToPoints(), nil
+	},
+	rsyslog.TypeInputIMDUP: func(b []byte) ([]*model.Point, error) {
+		u, err := rsyslog.NewInputIMUDPFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return u.ToPoints(), nil
+	},
+	rsyslog.TypeQueue: func(b []byte) ([]*model.Point, error) {
+		q, err := rsyslog.NewQueueFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return q.ToPoints(), nil
+	},
+	rsyslog.TypeResource: func(b []byte) ([]*model.Point, error) {
+		r, err := rsyslog.NewResourceFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return r.ToPoints(), nil
+	},
+	rsyslog.TypeDynStat: func(b []byte) ([]*model.Point, error) {
+		s, err := rsyslog.NewDynStatFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return s.ToPoints(), nil
+	},
+	rsyslog.TypeDynafileCache: func(b []byte) ([]*model.Point, error) {
+		d, err := rsyslog.NewDynafileCacheFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return d.ToPoints(), nil
+	},
+	rsyslog.TypeForward: func(b []byte) ([]*model.Point, error) {
+		f, err := rsyslog.NewForwardFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return f.ToPoints(), nil
+	},
+	rsyslog.TypeKubernetes: func(b []byte) ([]*model.Point, error) {
+		k, err := rsyslog.NewKubernetesFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return k.ToPoints(), nil
+	},
+	rsyslog.TypeOmkafka: func(b []byte) ([]*model.Point, error) {
+		o, err := rsyslog.NewOmkafkaFromJSON(b)
+		if err != nil {
+			return nil, err
+		}
+		return o.ToPoints(), nil
+	},
+}
+
 func (re *Exporter) handleStatLine(rawbuf []byte) error {
 	s := bytes.SplitN(rawbuf, []byte(" "), 4)
 	if len(s) != 4 {
 		return fmt.Errorf("failed to split log line, expected 4 columns, got: %v", len(s))
 	}
 	buf := s[3]
-
 	pstatType := rsyslog.GetStatType(buf)
-
-	switch pstatType {
-	case rsyslog.TypeAction:
-		a, err := rsyslog.NewActionFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range a.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-
-	case rsyslog.TypeInput:
-		i, err := rsyslog.NewInputFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range i.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-
-	case rsyslog.TypeInputIMDUP:
-		u, err := rsyslog.NewInputIMUDPFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range u.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-
-	case rsyslog.TypeQueue:
-		q, err := rsyslog.NewQueueFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range q.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-
-	case rsyslog.TypeResource:
-		r, err := rsyslog.NewResourceFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range r.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-	case rsyslog.TypeDynStat:
-		s, err := rsyslog.NewDynStatFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range s.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-	case rsyslog.TypeDynafileCache:
-		d, err := rsyslog.NewDynafileCacheFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range d.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-	case rsyslog.TypeForward:
-		f, err := rsyslog.NewForwardFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range f.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-	case rsyslog.TypeKubernetes:
-		k, err := rsyslog.NewKubernetesFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range k.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-	case rsyslog.TypeOmkafka:
-		o, err := rsyslog.NewOmkafkaFromJSON(buf)
-		if err != nil {
-			return err
-		}
-		for _, p := range o.ToPoints() {
-			if err := re.Set(p); err != nil {
-				return err
-			}
-		}
-
-	default:
+	dec, ok := statDecoders[pstatType]
+	if !ok {
 		return fmt.Errorf("unknown pstat type: %v", pstatType)
+	}
+	points, err := dec(buf)
+	if err != nil {
+		return err
+	}
+	for _, p := range points {
+		if err := re.Set(p); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -70,97 +70,38 @@ func TestQueueToPoints(t *testing.T) {
 	}
 	points := pstat.ToPoints()
 
-	point := points[0]
-	if want, got := "queue_size", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	type expectation struct {
+		idx        int
+		name       string
+		value      int64
+		metricType model.PointType
+		labelValue string
+	}
+	expected := []expectation{
+		{0, "queue_size", 10, model.Gauge, "main Q"},
+		{1, "queue_enqueued", 20, model.Counter, "main Q"},
+		{2, "queue_full", 30, model.Counter, "main Q"},
+		{3, "queue_discarded_full", 40, model.Counter, "main Q"},
+		{4, "queue_discarded_not_full", 50, model.Counter, "main Q"},
+		{5, "queue_max_size", 60, model.Gauge, "main Q"},
 	}
 
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[1]
-	if want, got := "queue_enqueued", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(20), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[2]
-	if want, got := "queue_full", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(30), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[3]
-	if want, got := "queue_discarded_full", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(40), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[4]
-	if want, got := "queue_discarded_not_full", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(50), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[5]
-	if want, got := "queue_max_size", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(60), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := model.Gauge, point.Type; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "main Q", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	for _, exp := range expected {
+		if exp.idx >= len(points) {
+			t.Fatalf("expected point index %d to exist", exp.idx)
+		}
+		pt := points[exp.idx]
+		if pt.Name != exp.name {
+			t.Errorf("idx %d: want name %s got %s", exp.idx, exp.name, pt.Name)
+		}
+		if pt.Value != exp.value {
+			t.Errorf("%s: want value %d got %d", exp.name, exp.value, pt.Value)
+		}
+		if pt.Type != exp.metricType {
+			t.Errorf("%s: want type %d got %d", exp.name, exp.metricType, pt.Type)
+		}
+		if pt.LabelValue != exp.labelValue {
+			t.Errorf("%s: want label %s got %s", exp.name, exp.labelValue, pt.LabelValue)
+		}
 	}
 }
