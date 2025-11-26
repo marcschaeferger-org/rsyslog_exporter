@@ -21,7 +21,7 @@ import (
 
 func TestCounter(t *testing.T) {
 	p1 := &Point{
-		Name:  "my counter",
+		Name:  "my_counter",
 		Type:  Counter,
 		Value: int64(10),
 	}
@@ -34,7 +34,7 @@ func TestCounter(t *testing.T) {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	wanted := `Desc{fqName: "rsyslog_my counter", help: "", constLabels: {}, variableLabels: {}}`
+	wanted := `Desc{fqName: "rsyslog_my_counter", help: "", constLabels: {}, variableLabels: {}}`
 	if want, got := wanted, p1.PromDescription().String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
@@ -42,7 +42,7 @@ func TestCounter(t *testing.T) {
 
 func TestGauge(t *testing.T) {
 	p1 := &Point{
-		Name:  "my gauge",
+		Name:  "my_gauge",
 		Type:  Gauge,
 		Value: int64(10),
 	}
@@ -55,7 +55,7 @@ func TestGauge(t *testing.T) {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	wanted := `Desc{fqName: "rsyslog_my gauge", help: "", constLabels: {}, variableLabels: {}}`
+	wanted := `Desc{fqName: "rsyslog_my_gauge", help: "", constLabels: {}, variableLabels: {}}`
 	if want, got := wanted, p1.PromDescription().String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
