@@ -182,13 +182,13 @@ func TestOmkafkaToPoints(t *testing.T) {
 				t.Errorf("got name %s; want %s", p.Name, tc.Name)
 			}
 			if p.Type != tc.Type {
-				t.Errorf("got type %d;  %d", p.Type, tc.Type)
+				t.Errorf("got type %d; want %d", p.Type, tc.Type)
 			}
 			if p.Value != tc.Value {
-				t.Errorf("got value %d;  %d", p.Value, tc.Value)
+				t.Errorf("got value %d; want %d", p.Value, tc.Value)
 			}
 			if p.LabelValue != tc.LabelValue {
-				t.Errorf("got label value %s;  %s", p.LabelValue, tc.LabelValue)
+				t.Errorf("got label value %s; want %s", p.LabelValue, tc.LabelValue)
 			}
 		})
 	}
