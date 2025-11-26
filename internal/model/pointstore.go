@@ -36,13 +36,14 @@ func NewStore() *Store {
 }
 
 func (ps *Store) Keys() []string {
-	ps.lock.Lock()
+	ps.lock.RLock()
 	keys := make([]string, 0, len(ps.pointMap))
 	for k := range ps.pointMap {
 		keys = append(keys, k)
 	}
+	ps.lock.RUnlock()
+
 	sort.Strings(keys)
-	ps.lock.Unlock()
 	return keys
 }
 
@@ -55,11 +56,10 @@ func (ps *Store) Set(p *Point) error {
 }
 
 func (ps *Store) Get(name string) (*Point, error) {
-	ps.lock.Lock()
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
 	if p, ok := ps.pointMap[name]; ok {
-		ps.lock.Unlock()
 		return p, nil
 	}
-	ps.lock.Unlock()
 	return &Point{}, ErrPointNotFound
 }
