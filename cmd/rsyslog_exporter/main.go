@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rsyslog
+package main
 
 import (
 	"flag"
@@ -30,7 +30,7 @@ var (
 	listenAddress = flag.String("web.listen-address", ":9104", "Address to listen on for web interface and telemetry.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	certPath      = flag.String("tls.server-crt", "", "Path to PEM encoded file containing TLS server cert.")
-	keyPath       = flag.String("tls.server-key", "", "Path to PEM encoded file containing TLS server key (unencyrpted).")
+	keyPath       = flag.String("tls.server-key", "", "Path to PEM encoded file containing TLS server key (unencrypted).")
 	silent        = flag.Bool("silent", false, "Disable logging of errors in handling stats lines")
 )
 

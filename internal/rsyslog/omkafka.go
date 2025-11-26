@@ -236,10 +236,10 @@ func (o *omkafka) ToPoints() []*model.Point {
 	}
 
 	points[19] = &model.Point{
-		Name:        "omkafka_rtt_avg_usec_acg",
+		Name:        "omkafka_rtt_avg_usec_avg",
 		Type:        model.Gauge,
 		Value:       o.RttAvgUsec,
-		Description: "broker round trip time in microseconds averaged over all brokers. It is based on the statistics callback window specified through statistics.interval.ms parameter to librdkafka. Average exclude brokers with less than 100 microseconds rtt",
+		Description: "broker round trip time in microseconds averaged over all brokers. It is based on the statistics callback window specified through statistics.interval.ms parameter to librdkafka. Average excludes brokers with less than 100 microseconds rtt",
 	}
 
 	points[20] = &model.Point{
@@ -253,7 +253,7 @@ func (o *omkafka) ToPoints() []*model.Point {
 		Name:        "omkafka_int_latency_avg_usec_avg",
 		Type:        model.Gauge,
 		Value:       o.IntLatencyAvgUsec,
-		Description: "internal librdkafka producer queue latency in microseconds averaged other all brokers. This is also part of window statistics and average excludes brokers with zero internal latency",
+		Description: "internal librdkafka producer queue latency in microseconds averaged over all brokers. This is also part of window statistics and average excludes brokers with zero internal latency",
 	}
 
 	return points

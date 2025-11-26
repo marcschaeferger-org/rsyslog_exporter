@@ -159,7 +159,7 @@ func TestOmkafkaToPoints(t *testing.T) {
 			LabelValue: "other",
 		},
 		{
-			Name:  "omkafka_rtt_avg_usec_acg",
+			Name:  "omkafka_rtt_avg_usec_avg",
 			Type:  model.Gauge,
 			Value: 0,
 		},

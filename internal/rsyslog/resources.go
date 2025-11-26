@@ -58,7 +58,7 @@ func (r *resource) ToPoints() []*model.Point {
 		Name:        "resource_stime",
 		Type:        model.Counter,
 		Value:       r.Stime,
-		Description: "system time used in microsends",
+		Description: "system time used in microseconds",
 		LabelName:   "resource",
 		LabelValue:  r.Name,
 	}

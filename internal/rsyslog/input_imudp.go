@@ -51,7 +51,7 @@ func (i *inputIMUDP) ToPoints() []*model.Point {
 		Name:        "input_called_recvmsg",
 		Type:        model.Counter,
 		Value:       i.Recvmsg,
-		Description: "Number of recvmmsg called",
+		Description: "Number of recvmsg called",
 		LabelName:   "worker",
 		LabelValue:  i.Name,
 	}

@@ -174,7 +174,7 @@ func (re *rsyslogExporter) Describe(ch chan<- *prometheus.Desc) {
 
 	for _, k := range keys {
 		p, err := re.Get(k)
-		if err != nil {
+		if err == nil {
 			ch <- p.PromDescription()
 		}
 	}

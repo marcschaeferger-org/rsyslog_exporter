@@ -68,5 +68,8 @@ func (p *Point) PromLabelName() string {
 }
 
 func (p *Point) Key() string {
+	if p.LabelValue == "" {
+		return p.Name
+	}
 	return fmt.Sprintf("%s.%s", p.Name, p.LabelValue)
 }
