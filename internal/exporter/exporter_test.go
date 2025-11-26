@@ -78,27 +78,27 @@ func (t *testUnit) key() string {
 
 func TestHandleLineWithAction(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "action_processed",
 			Val:        100000,
 			LabelValue: "test_action",
 		},
-		&testUnit{
+		{
 			Name:       "action_failed",
 			Val:        2,
 			LabelValue: "test_action",
 		},
-		&testUnit{
+		{
 			Name:       "action_suspended",
 			Val:        1,
 			LabelValue: "test_action",
 		},
-		&testUnit{
+		{
 			Name:       "action_suspended_duration",
 			Val:        1000,
 			LabelValue: "test_action",
 		},
-		&testUnit{
+		{
 			Name:       "action_resumed",
 			Val:        1,
 			LabelValue: "test_action",
@@ -111,47 +111,47 @@ func TestHandleLineWithAction(t *testing.T) {
 
 func TestHandleLineWithResource(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "resource_utime",
 			Val:        10,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_stime",
 			Val:        20,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_maxrss",
 			Val:        30,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_minflt",
 			Val:        40,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_majflt",
 			Val:        50,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_inblock",
 			Val:        60,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_oublock",
 			Val:        70,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_nvcsw",
 			Val:        80,
 			LabelValue: "resource-usage",
 		},
-		&testUnit{
+		{
 			Name:       "resource_nivcsw",
 			Val:        90,
 			LabelValue: "resource-usage",
@@ -164,7 +164,7 @@ func TestHandleLineWithResource(t *testing.T) {
 
 func TestHandleLineWithInput(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "input_submitted",
 			Val:        1000,
 			LabelValue: "test_input",
@@ -177,32 +177,32 @@ func TestHandleLineWithInput(t *testing.T) {
 
 func TestHandleLineWithQueue(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "queue_size",
 			Val:        10,
 			LabelValue: "main Q",
 		},
-		&testUnit{
+		{
 			Name:       "queue_enqueued",
 			Val:        20,
 			LabelValue: "main Q",
 		},
-		&testUnit{
+		{
 			Name:       "queue_full",
 			Val:        30,
 			LabelValue: "main Q",
 		},
-		&testUnit{
+		{
 			Name:       "queue_discarded_full",
 			Val:        40,
 			LabelValue: "main Q",
 		},
-		&testUnit{
+		{
 			Name:       "queue_discarded_not_full",
 			Val:        50,
 			LabelValue: "main Q",
 		},
-		&testUnit{
+		{
 			Name:       "queue_max_size",
 			Val:        60,
 			LabelValue: "main Q",
@@ -215,27 +215,27 @@ func TestHandleLineWithQueue(t *testing.T) {
 
 func TestHandleLineWithGlobal(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "dynstat_global",
 			Val:        1,
 			LabelValue: "msg_per_host.ops_overflow",
 		},
-		&testUnit{
+		{
 			Name:       "dynstat_global",
 			Val:        3,
 			LabelValue: "msg_per_host.new_metric_add",
 		},
-		&testUnit{
+		{
 			Name:       "dynstat_global",
 			Val:        0,
 			LabelValue: "msg_per_host.no_metric",
 		},
-		&testUnit{
+		{
 			Name:       "dynstat_global",
 			Val:        0,
 			LabelValue: "msg_per_host.metrics_purged",
 		},
-		&testUnit{
+		{
 			Name:       "dynstat_global",
 			Val:        0,
 			LabelValue: "msg_per_host.ops_ignored",
@@ -249,22 +249,22 @@ func TestHandleLineWithGlobal(t *testing.T) {
 
 func TestHandleLineWithDynafileCache(t *testing.T) {
 	tests := []*testUnit{
-		&testUnit{
+		{
 			Name:       "dynafile_cache_requests",
 			Val:        412044,
 			LabelValue: "cluster",
 		},
-		&testUnit{
+		{
 			Name:       "dynafile_cache_level0",
 			Val:        294002,
 			LabelValue: "cluster",
 		},
-		&testUnit{
+		{
 			Name:       "dynafile_cache_missed",
 			Val:        210,
 			LabelValue: "cluster",
 		},
-		&testUnit{
+		{
 			Name:       "dynafile_cache_evicted",
 			Val:        14,
 			LabelValue: "cluster",
