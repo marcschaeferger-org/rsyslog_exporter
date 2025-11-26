@@ -1,0 +1,98 @@
+// Copyright 2024 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package rsyslog
+
+import (
+	"testing"
+)
+
+var (
+	inputIMUDPLog = []byte(`{ "name": "test_input_imudp", "origin": "imudp", "called.recvmmsg":1000, "called.recvmsg":2000, "msgs.received":500}`)
+)
+
+func TestGetInputIMUDP(t *testing.T) {
+	logType := GetStatType(inputIMUDPLog)
+	if logType != TypeInputIMDUP {
+		t.Errorf("detected pstat type should be %d but is %d", TypeInputIMDUP, logType)
+	}
+
+	pstat, err := NewInputIMUDPFromJSON([]byte(inputIMUDPLog))
+	if err != nil {
+		t.Fatalf("expected parsing input stat not to fail, got: %v", err)
+	}
+
+	if want, got := "test_input_imudp", pstat.Name; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := int64(1000), pstat.Recvmmsg; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := int64(2000), pstat.Recvmsg; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := int64(500), pstat.Received; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+}
+
+func TestInputIMUDPtoPoints(t *testing.T) {
+	pstat, err := NewInputIMUDPFromJSON([]byte(inputIMUDPLog))
+	if err != nil {
+		t.Fatalf("expected parsing input stat not to fail, got: %v", err)
+	}
+
+	points := pstat.ToPoints()
+
+	point := points[0]
+	if want, got := "input_called_recvmmsg", point.Name; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := int64(1000), point.Value; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "test_input_imudp", point.LabelValue; want != got {
+		t.Errorf("wanted '%s', got '%s'", want, got)
+	}
+
+	point = points[1]
+	if want, got := "input_called_recvmsg", point.Name; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := int64(2000), point.Value; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "test_input_imudp", point.LabelValue; want != got {
+		t.Errorf("wanted '%s', got '%s'", want, got)
+	}
+
+	point = points[2]
+	if want, got := "input_received", point.Name; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := int64(500), point.Value; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "test_input_imudp", point.LabelValue; want != got {
+		t.Errorf("wanted '%s', got '%s'", want, got)
+	}
+}
