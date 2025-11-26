@@ -37,9 +37,12 @@ func NewStore() *Store {
 
 func (ps *Store) Keys() []string {
 	ps.lock.RLock()
-	keys := make([]string, 0, len(ps.pointMap))
+	size := len(ps.pointMap)
+	keys := make([]string, size)
+	i := 0
 	for k := range ps.pointMap {
-		keys = append(keys, k)
+		keys[i] = k
+		i++
 	}
 	ps.lock.RUnlock()
 

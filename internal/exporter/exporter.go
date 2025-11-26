@@ -187,6 +187,8 @@ func (re *Exporter) Describe(ch chan<- *prometheus.Desc) {
 		p, err := re.Get(k)
 		if err == nil {
 			ch <- p.PromDescription()
+		} else {
+			log.Printf("describe: failed to get point for key %s: %v", k, err)
 		}
 	}
 }
