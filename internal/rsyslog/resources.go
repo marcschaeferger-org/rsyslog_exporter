@@ -20,7 +20,8 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type resource struct {
+// Resource represents rsyslog resource usage statistics.
+type Resource struct {
 	Name     string `json:"name"`
 	Utime    int64  `json:"utime"`
 	Stime    int64  `json:"stime"`
@@ -33,8 +34,8 @@ type resource struct {
 	Nivcsw   int64  `json:"nivcsw"`
 }
 
-func NewResourceFromJSON(b []byte) (*resource, error) {
-	var pstat resource
+func NewResourceFromJSON(b []byte) (*Resource, error) {
+	var pstat Resource
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode resource stat `%v`: %v", string(b), err)
@@ -42,7 +43,7 @@ func NewResourceFromJSON(b []byte) (*resource, error) {
 	return &pstat, nil
 }
 
-func (r *resource) ToPoints() []*model.Point {
+func (r *Resource) ToPoints() []*model.Point {
 	points := make([]*model.Point, 9)
 
 	points[0] = &model.Point{

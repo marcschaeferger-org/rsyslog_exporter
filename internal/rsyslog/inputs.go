@@ -20,13 +20,14 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type input struct {
+// Input represents generic rsyslog input statistics.
+type Input struct {
 	Name      string `json:"name"`
 	Submitted int64  `json:"submitted"`
 }
 
-func NewInputFromJSON(b []byte) (*input, error) {
-	var pstat input
+func NewInputFromJSON(b []byte) (*Input, error) {
+	var pstat Input
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding input stat `%v`: %v", string(b), err)
@@ -34,7 +35,7 @@ func NewInputFromJSON(b []byte) (*input, error) {
 	return &pstat, nil
 }
 
-func (i *input) ToPoints() []*model.Point {
+func (i *Input) ToPoints() []*model.Point {
 	points := make([]*model.Point, 1)
 
 	points[0] = &model.Point{

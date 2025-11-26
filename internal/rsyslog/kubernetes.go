@@ -25,7 +25,8 @@ var (
 	apiNameRegexp = regexp.MustCompile(`mmkubernetes\((\S+)\)`)
 )
 
-type kubernetes struct {
+// Kubernetes represents rsyslog mmkubernetes module statistics.
+type Kubernetes struct {
 	Name                  string `json:"name"`
 	Url                   string
 	RecordSeen            int64 `json:"recordseen"`
@@ -39,8 +40,8 @@ type kubernetes struct {
 	PodMetaError          int64 `json:"podmetadataerror"`
 }
 
-func NewKubernetesFromJSON(b []byte) (*kubernetes, error) {
-	var pstat kubernetes
+func NewKubernetesFromJSON(b []byte) (*Kubernetes, error) {
+	var pstat Kubernetes
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode kubernetes stat `%v`: %v", string(b), err)
@@ -52,7 +53,7 @@ func NewKubernetesFromJSON(b []byte) (*kubernetes, error) {
 	return &pstat, nil
 }
 
-func (k *kubernetes) ToPoints() []*model.Point {
+func (k *Kubernetes) ToPoints() []*model.Point {
 	points := make([]*model.Point, 9)
 
 	points[0] = &model.Point{

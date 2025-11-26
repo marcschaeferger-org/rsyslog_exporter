@@ -20,7 +20,8 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type action struct {
+// Action represents rsyslog action statistics.
+type Action struct {
 	Name              string `json:"name"`
 	Processed         int64  `json:"processed"`
 	Failed            int64  `json:"failed"`
@@ -29,8 +30,8 @@ type action struct {
 	Resumed           int64  `json:"resumed"`
 }
 
-func NewActionFromJSON(b []byte) (*action, error) {
-	var pstat action
+func NewActionFromJSON(b []byte) (*Action, error) {
+	var pstat Action
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode action stat `%v`: %v", string(b), err)
@@ -38,7 +39,7 @@ func NewActionFromJSON(b []byte) (*action, error) {
 	return &pstat, nil
 }
 
-func (a *action) ToPoints() []*model.Point {
+func (a *Action) ToPoints() []*model.Point {
 	points := make([]*model.Point, 5)
 
 	points[0] = &model.Point{

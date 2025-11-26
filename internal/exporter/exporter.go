@@ -27,25 +27,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type rsyslogExporter struct {
+// Exporter collects and exposes rsyslog impstats metrics.
+type Exporter struct {
 	scanner *bufio.Scanner
 	*model.Store
 }
 
-func newRsyslogExporter() *rsyslogExporter {
-	e := &rsyslogExporter{
+func newExporter() *Exporter {
+	e := &Exporter{
 		scanner: bufio.NewScanner(os.Stdin),
 		Store:   model.NewStore(),
 	}
 	return e
 }
 
-// New returns an initialized rsyslogExporter.
-func New() *rsyslogExporter { // exported for tests
-	return newRsyslogExporter()
+// New returns an initialized Exporter.
+func New() *Exporter { // exported for tests
+	return newExporter()
 }
 
-func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
+func (re *Exporter) handleStatLine(rawbuf []byte) error {
 	s := bytes.SplitN(rawbuf, []byte(" "), 4)
 	if len(s) != 4 {
 		return fmt.Errorf("failed to split log line, expected 4 columns, got: %v", len(s))
@@ -173,7 +174,7 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 // it is called. The rsyslog exporter does not know all possible metrics
 // it will export until the first full batch of rsyslog impstats messages
 // are received via stdin. This is ok for now.
-func (re *rsyslogExporter) Describe(ch chan<- *prometheus.Desc) {
+func (re *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- prometheus.NewDesc(
 		prometheus.BuildFQName("", "rsyslog", "scrapes"),
 		"times exporter has been scraped",
@@ -191,7 +192,7 @@ func (re *rsyslogExporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Collect is called by Prometheus when collecting metrics.
-func (re *rsyslogExporter) Collect(ch chan<- prometheus.Metric) {
+func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	keys := re.Keys()
 
 	for _, k := range keys {
@@ -215,7 +216,7 @@ func (re *rsyslogExporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (re *rsyslogExporter) run(silent bool) {
+func (re *Exporter) run(silent bool) {
 	errorPoint := &model.Point{
 		Name:        "stats_line_errors",
 		Type:        model.Counter,
@@ -240,6 +241,6 @@ func (re *rsyslogExporter) run(silent bool) {
 }
 
 // Run starts the exporter loop. Exported for use by the cmd package.
-func (re *rsyslogExporter) Run(silent bool) {
+func (re *Exporter) Run(silent bool) {
 	re.run(silent)
 }

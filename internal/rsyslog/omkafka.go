@@ -20,7 +20,8 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type omkafka struct {
+// Omkafka represents rsyslog omkafka action statistics.
+type Omkafka struct {
 	Name                     string `json:"name"`
 	Origin                   string `json:"origin"`
 	Submitted                int64  `json:"submitted"`
@@ -53,8 +54,8 @@ const (
 	errorsDescription         = "timed_out: messages that librdkafka could not deliver within timeout. These errors will cause action to be suspended but messages can be retried depending on retry options; transport: messages that librdkafka could not deliver due to transport errors. These messages can be retried depending on retry options; broker_down: messages that librdkafka could not deliver because it thinks that broker is not accessible. These messages can be retried depending on options; auth: messages that librdkafka could not deliver due to authentication errors. These messages can be retried depending on the options; ssl: messages that librdkafka could not deliver due to ssl errors. These messages can be retried depending on the options; other: rest of librdkafka errors"
 )
 
-func NewOmkafkaFromJSON(b []byte) (*omkafka, error) {
-	var pstat omkafka
+func NewOmkafkaFromJSON(b []byte) (*Omkafka, error) {
+	var pstat Omkafka
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode omkafka stat `%v`: %v", string(b), err)
@@ -62,7 +63,7 @@ func NewOmkafkaFromJSON(b []byte) (*omkafka, error) {
 	return &pstat, nil
 }
 
-func (o *omkafka) ToPoints() []*model.Point {
+func (o *Omkafka) ToPoints() []*model.Point {
 	points := make([]*model.Point, 22)
 
 	// A input_submitted metric was always created for omkafka

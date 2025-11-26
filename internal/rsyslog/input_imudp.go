@@ -20,15 +20,16 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type inputIMUDP struct {
+// InputIMUDP represents rsyslog imudp input worker statistics.
+type InputIMUDP struct {
 	Name     string `json:"name"`
 	Recvmmsg int64  `json:"called.recvmmsg"`
 	Recvmsg  int64  `json:"called.recvmsg"`
 	Received int64  `json:"msgs.received"`
 }
 
-func NewInputIMUDPFromJSON(b []byte) (*inputIMUDP, error) {
-	var pstat inputIMUDP
+func NewInputIMUDPFromJSON(b []byte) (*InputIMUDP, error) {
+	var pstat InputIMUDP
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding input stat `%v`: %v", string(b), err)
@@ -36,7 +37,7 @@ func NewInputIMUDPFromJSON(b []byte) (*inputIMUDP, error) {
 	return &pstat, nil
 }
 
-func (i *inputIMUDP) ToPoints() []*model.Point {
+func (i *InputIMUDP) ToPoints() []*model.Point {
 	points := make([]*model.Point, 3)
 
 	points[0] = &model.Point{

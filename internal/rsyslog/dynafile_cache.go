@@ -21,7 +21,8 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type dfcStat struct {
+// DfcStat represents rsyslog dynafile cache statistics.
+type DfcStat struct {
 	Name          string `json:"name"`
 	Origin        string `json:"origin"`
 	Requests      int64  `json:"requests"`
@@ -32,8 +33,8 @@ type dfcStat struct {
 	CloseTimeouts int64  `json:"closetimeouts"`
 }
 
-func NewDynafileCacheFromJSON(b []byte) (*dfcStat, error) {
-	var pstat dfcStat
+func NewDynafileCacheFromJSON(b []byte) (*DfcStat, error) {
+	var pstat DfcStat
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding dynafile cache stat `%v`: %v", string(b), err)
@@ -42,7 +43,7 @@ func NewDynafileCacheFromJSON(b []byte) (*dfcStat, error) {
 	return &pstat, nil
 }
 
-func (d *dfcStat) ToPoints() []*model.Point {
+func (d *DfcStat) ToPoints() []*model.Point {
 	points := make([]*model.Point, 6)
 
 	points[0] = &model.Point{

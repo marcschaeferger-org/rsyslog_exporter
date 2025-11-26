@@ -20,14 +20,15 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type dynStat struct {
+// DynStat represents rsyslog dynamic statistics buckets.
+type DynStat struct {
 	Name   string           `json:"name"`
 	Origin string           `json:"origin"`
 	Values map[string]int64 `json:"values"`
 }
 
-func NewDynStatFromJSON(b []byte) (*dynStat, error) {
-	var pstat dynStat
+func NewDynStatFromJSON(b []byte) (*DynStat, error) {
+	var pstat DynStat
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding values stat `%v`: %v", string(b), err)
@@ -35,7 +36,7 @@ func NewDynStatFromJSON(b []byte) (*dynStat, error) {
 	return &pstat, nil
 }
 
-func (i *dynStat) ToPoints() []*model.Point {
+func (i *DynStat) ToPoints() []*model.Point {
 	points := make([]*model.Point, 0, len(i.Values))
 
 	for name, value := range i.Values {

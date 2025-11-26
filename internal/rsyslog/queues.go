@@ -20,7 +20,8 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type queue struct {
+// Queue represents rsyslog queue statistics.
+type Queue struct {
 	Name          string `json:"name"`
 	Size          int64  `json:"size"`
 	Enqueued      int64  `json:"enqueued"`
@@ -30,8 +31,8 @@ type queue struct {
 	MaxQsize      int64  `json:"maxqsize"`
 }
 
-func NewQueueFromJSON(b []byte) (*queue, error) {
-	var pstat queue
+func NewQueueFromJSON(b []byte) (*Queue, error) {
+	var pstat Queue
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode queue stat `%v`: %v", string(b), err)
@@ -39,7 +40,7 @@ func NewQueueFromJSON(b []byte) (*queue, error) {
 	return &pstat, nil
 }
 
-func (q *queue) ToPoints() []*model.Point {
+func (q *Queue) ToPoints() []*model.Point {
 	points := make([]*model.Point, 6)
 
 	points[0] = &model.Point{

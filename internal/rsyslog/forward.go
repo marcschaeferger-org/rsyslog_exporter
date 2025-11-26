@@ -20,13 +20,14 @@ import (
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
-type forward struct {
+// Forward represents rsyslog forwarding statistics.
+type Forward struct {
 	Name      string `json:"name"`
 	BytesSent int64  `json:"bytes.sent"`
 }
 
-func NewForwardFromJSON(b []byte) (*forward, error) {
-	var pstat forward
+func NewForwardFromJSON(b []byte) (*Forward, error) {
+	var pstat Forward
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode forward stat `%v`: %v", string(b), err)
@@ -34,7 +35,7 @@ func NewForwardFromJSON(b []byte) (*forward, error) {
 	return &pstat, nil
 }
 
-func (f *forward) ToPoints() []*model.Point {
+func (f *Forward) ToPoints() []*model.Point {
 	points := make([]*model.Point, 1)
 
 	points[0] = &model.Point{
