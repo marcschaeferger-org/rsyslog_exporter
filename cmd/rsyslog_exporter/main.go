@@ -74,12 +74,12 @@ func main() {
 	if *certPath == "" && *keyPath == "" {
 		log.Printf("Listening on %s", *listenAddress)
 		log.Fatal(http.ListenAndServe(*listenAddress, nil))
-	} else if *certPath == "" || *keyPath == "" {
-		log.Fatal("Both tls.server-crt and tls.server-key must be specified")
-	} else {
-		log.Printf("Listening for TLS on %s", *listenAddress)
-		log.Fatal(http.ListenAndServeTLS(*listenAddress, *certPath, *keyPath, nil))
 	}
+	if *certPath == "" || *keyPath == "" {
+		log.Fatal("Both tls.server-crt and tls.server-key must be specified")
+	}
+	log.Printf("Listening for TLS on %s", *listenAddress)
+	log.Fatal(http.ListenAndServeTLS(*listenAddress, *certPath, *keyPath, nil))
 }
 
 func setupSyslog() {
