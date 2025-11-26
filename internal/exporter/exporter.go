@@ -197,7 +197,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (re *Exporter) run(silent bool) {
+func (re *Exporter) run(silent bool) error {
 	errorPoint := &model.Point{
 		Name:        "stats_line_errors",
 		Type:        model.Counter,
@@ -216,12 +216,14 @@ func (re *Exporter) run(silent bool) {
 	}
 	if err := re.scanner.Err(); err != nil {
 		log.Printf("error reading input: %v", err)
+		return err
 	}
-	log.Print("input ended, exiting normally")
-	os.Exit(0)
+	log.Print("input ended, returning from run")
+	return nil
 }
 
 // Run starts the exporter loop. Exported for use by the cmd package.
-func (re *Exporter) Run(silent bool) {
-	re.run(silent)
+// It returns when stdin scanning ends; callers (e.g. main) should decide whether to exit the process.
+func (re *Exporter) Run(silent bool) error {
+	return re.run(silent)
 }

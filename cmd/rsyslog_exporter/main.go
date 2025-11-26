@@ -49,7 +49,12 @@ func main() {
 	}()
 
 	go func() {
-		re.Run(*silent)
+		if err := re.Run(*silent); err != nil {
+			log.Printf("exporter run ended with error: %v", err)
+			os.Exit(1)
+		}
+		log.Print("exporter run ended normally, exiting")
+		os.Exit(0)
 	}()
 
 	prometheus.MustRegister(re)
