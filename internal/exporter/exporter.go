@@ -61,8 +61,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range a.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 
 	case rsyslog.TypeInput:
@@ -71,8 +72,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range i.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 
 	case rsyslog.TypeInputIMDUP:
@@ -81,8 +83,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range u.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 
 	case rsyslog.TypeQueue:
@@ -91,8 +94,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range q.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 
 	case rsyslog.TypeResource:
@@ -101,8 +105,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range r.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 	case rsyslog.TypeDynStat:
 		s, err := rsyslog.NewDynStatFromJSON(buf)
@@ -110,8 +115,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range s.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 	case rsyslog.TypeDynafileCache:
 		d, err := rsyslog.NewDynafileCacheFromJSON(buf)
@@ -119,8 +125,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range d.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 	case rsyslog.TypeForward:
 		f, err := rsyslog.NewForwardFromJSON(buf)
@@ -128,8 +135,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range f.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 	case rsyslog.TypeKubernetes:
 		k, err := rsyslog.NewKubernetesFromJSON(buf)
@@ -137,8 +145,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range k.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 	case rsyslog.TypeOmkafka:
 		o, err := rsyslog.NewOmkafkaFromJSON(buf)
@@ -146,8 +155,9 @@ func (re *rsyslogExporter) handleStatLine(rawbuf []byte) error {
 			return err
 		}
 		for _, p := range o.ToPoints() {
-			// nolint:errcheck
-			re.Set(p)
+			if err := re.Set(p); err != nil {
+				return err
+			}
 		}
 
 	default:
