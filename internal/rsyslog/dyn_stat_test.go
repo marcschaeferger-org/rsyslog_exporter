@@ -51,7 +51,7 @@ func TestGetDynStat(t *testing.T) {
 func TestDynStatToPoints(t *testing.T) {
 	log := []byte(`{ "name": "global", "origin": "dynstats", "values": { "msg_per_host.ops_overflow": 1, "msg_per_host.new_metric_add": 3, "msg_per_host.no_metric": 0, "msg_per_host.metrics_purged": 0, "msg_per_host.ops_ignored": 0 } }`)
 	wants := map[string]model.Point{
-		"msg_per_host.ops_overflow": model.Point{
+		"msg_per_host.ops_overflow": {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       1,
@@ -59,7 +59,7 @@ func TestDynStatToPoints(t *testing.T) {
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.ops_overflow",
 		},
-		"msg_per_host.new_metric_add": model.Point{
+		"msg_per_host.new_metric_add": {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       3,
@@ -67,7 +67,7 @@ func TestDynStatToPoints(t *testing.T) {
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.new_metric_add",
 		},
-		"msg_per_host.no_metric": model.Point{
+		"msg_per_host.no_metric": {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,
@@ -75,7 +75,7 @@ func TestDynStatToPoints(t *testing.T) {
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.no_metric",
 		},
-		"msg_per_host.metrics_purged": model.Point{
+		"msg_per_host.metrics_purged": {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,
@@ -83,7 +83,7 @@ func TestDynStatToPoints(t *testing.T) {
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.metrics_purged",
 		},
-		"msg_per_host.ops_ignored": model.Point{
+		"msg_per_host.ops_ignored": {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,

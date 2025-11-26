@@ -67,7 +67,7 @@ func TestNewDynafileCacheFromJSON(t *testing.T) {
 func TestDynafileCacheToPoints(t *testing.T) {
 
 	wants := map[string]model.Point{
-		"dynafile_cache_requests": model.Point{
+		"dynafile_cache_requests": {
 			Name:        "dynafile_cache_requests",
 			Type:        model.Counter,
 			Value:       1783254,
@@ -75,7 +75,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 			LabelName:   "cache",
 			LabelValue:  "cluster",
 		},
-		"dynafile_cache_level0": model.Point{
+		"dynafile_cache_level0": {
 			Name:        "dynafile_cache_level0",
 			Type:        model.Counter,
 			Value:       1470906,
@@ -84,7 +84,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 
 			LabelValue: "cluster",
 		},
-		"dynafile_cache_missed": model.Point{
+		"dynafile_cache_missed": {
 			Name:        "dynafile_cache_missed",
 			Type:        model.Counter,
 			Value:       2625,
@@ -92,7 +92,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 			LabelName:   "cache",
 			LabelValue:  "cluster",
 		},
-		"dynafile_cache_evicted": model.Point{
+		"dynafile_cache_evicted": {
 			Name:        "dynafile_cache_evicted",
 			Type:        model.Counter,
 			Value:       2525,
@@ -100,7 +100,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 			LabelName:   "cache",
 			LabelValue:  "cluster",
 		},
-		"dynafile_cache_maxused": model.Point{
+		"dynafile_cache_maxused": {
 			Name:        "dynafile_cache_maxused",
 			Type:        model.Counter,
 			Value:       100,
@@ -108,7 +108,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 			LabelName:   "cache",
 			LabelValue:  "cluster",
 		},
-		"dynafile_cache_closetimeouts": model.Point{
+		"dynafile_cache_closetimeouts": {
 			Name:        "dynafile_cache_closetimeouts",
 			Type:        model.Counter,
 			Value:       10,
