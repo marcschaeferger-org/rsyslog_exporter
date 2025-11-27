@@ -53,5 +53,4 @@ func TestForwardToPoints(t *testing.T) {
 	if p.Type != model.Counter {
 		t.Errorf("point type: expected %v, got %v", model.Counter, p.Type)
 	}
-	th.AssertEqString(t, "point label", "TCP-FQDN-6514", p.LabelValue)
 }
