@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	exporter "github.com/prometheus-community/rsyslog_exporter/internal/exporter"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,7 +60,7 @@ func main() {
 
 	prometheus.MustRegister(re)
 	http.Handle(*metricPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		// nolint:errcheck
 		w.Write([]byte(`<html>
 <head><title>Rsyslog exporter</title></head>
@@ -71,15 +72,26 @@ func main() {
 `))
 	})
 
+	// Configure server with sensible timeouts to mitigate slowloris and
+	// similar DoS attacks. Use DefaultServeMux by leaving Handler nil.
+	srv := &http.Server{
+		Addr:              *listenAddress,
+		Handler:           nil,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	if *certPath == "" && *keyPath == "" {
 		log.Printf("Listening on %s", *listenAddress)
-		log.Fatal(http.ListenAndServe(*listenAddress, nil))
+		log.Fatal(srv.ListenAndServe())
 	}
 	if *certPath == "" || *keyPath == "" {
 		log.Fatal("Both tls.server-crt and tls.server-key must be specified")
 	}
 	log.Printf("Listening for TLS on %s", *listenAddress)
-	log.Fatal(http.ListenAndServeTLS(*listenAddress, *certPath, *keyPath, nil))
+	log.Fatal(srv.ListenAndServeTLS(*certPath, *keyPath))
 }
 
 func setupSyslog() {
