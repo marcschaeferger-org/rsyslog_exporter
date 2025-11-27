@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
@@ -36,7 +37,7 @@ func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 		}
 
 		if want, got := item.Val, p.PromValue(); want != got {
-			t.Errorf("%s: want '%f', got '%f'", item.Name, want, got)
+			t.Errorf(th.WantFloatFmt, item.Name, want, got)
 		}
 	}
 
@@ -283,6 +284,6 @@ func TestHandleUnknown(t *testing.T) {
 	exporter.handleStatLine(unknownLog)
 
 	if want, got := 0, len(exporter.Keys()); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 }

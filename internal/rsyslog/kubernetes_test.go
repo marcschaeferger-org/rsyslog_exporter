@@ -13,122 +13,73 @@
 
 package rsyslog
 
-import "testing"
+import (
+	"testing"
+
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
+)
 
 var (
 	kubernetesLog = []byte(`{ "name": "mmkubernetes(https://host.domain.tld:6443)", "origin": "mmkubernetes", "recordseen": 477943, "namespacemetadatasuccess": 7, "namespacemetadatanotfound": 0, "namespacemetadatabusy": 0, "namespacemetadataerror": 0, "podmetadatasuccess": 26, "podmetadatanotfound": 0, "podmetadatabusy": 0, "podmetadataerror": 0 }`)
 )
 
 func TestNewKubernetesFromJSON(t *testing.T) {
-	logType := GetStatType(kubernetesLog)
-	if logType != TypeKubernetes {
-		t.Errorf("detected pstat type should be %d but is %d", TypeKubernetes, logType)
+	if got := GetStatType(kubernetesLog); got != TypeKubernetes {
+		t.Errorf(th.DetectedTypeFmt, TypeKubernetes, got)
 	}
-
-	pstat, err := NewKubernetesFromJSON([]byte(kubernetesLog))
+	pstat, err := NewKubernetesFromJSON(kubernetesLog)
 	if err != nil {
-		t.Fatalf("expected parsing action not to fail, got: %v", err)
+		t.Fatalf("parse kubernetes stat failed: %v", err)
 	}
+	// Table of string expectations.
+	th.AssertEqString(t, "k8s name", "mmkubernetes(https://host.domain.tld:6443)", pstat.Name)
+	th.AssertEqString(t, "k8s url", "https://host.domain.tld:6443", pstat.Url)
 
-	if want, got := "mmkubernetes(https://host.domain.tld:6443)", pstat.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	// Numeric field expectations.
+	numExpectations := []struct {
+		ctx  string
+		want int64
+		got  int64
+	}{
+		{"record_seen", 477943, pstat.RecordSeen},
+		{"ns_meta_success", 7, pstat.NamespaceMetaSuccess},
+		{"ns_meta_notfound", 0, pstat.NamespaceMetaNotFound},
+		{"ns_meta_busy", 0, pstat.NamespaceMetaBusy},
+		{"ns_meta_error", 0, pstat.NamespaceMetaError},
+		{"pod_meta_success", 26, pstat.PodMetaSuccess},
+		{"pod_meta_notfound", 0, pstat.PodMetaNotFound},
+		{"pod_meta_busy", 0, pstat.PodMetaBusy},
+		{"pod_meta_error", 0, pstat.PodMetaError},
 	}
-
-	if want, got := "https://host.domain.tld:6443", pstat.Url; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	for _, ne := range numExpectations {
+		th.AssertEqInt(t, ne.ctx, ne.want, ne.got)
 	}
-
-	if want, got := int64(477943), pstat.RecordSeen; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(7), pstat.NamespaceMetaSuccess; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.NamespaceMetaNotFound; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.NamespaceMetaBusy; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.NamespaceMetaError; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(26), pstat.PodMetaSuccess; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.PodMetaNotFound; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.PodMetaBusy; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(0), pstat.PodMetaError; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
 }
 
 func TestKubernetesToPoints(t *testing.T) {
-	pstat, err := NewKubernetesFromJSON([]byte(kubernetesLog))
+	pstat, err := NewKubernetesFromJSON(kubernetesLog)
 	if err != nil {
-		t.Fatalf("expected parsing action not to fail, got: %v", err)
+		t.Fatalf("parse kubernetes stat failed: %v", err)
 	}
 	points := pstat.ToPoints()
-
-	point := points[0]
-	if want, got := "kubernetes_namespace_metadata_success_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	expectedNames := []string{
+		"kubernetes_namespace_metadata_success_total",
+		"kubernetes_namespace_metadata_notfound_total",
+		"kubernetes_namespace_metadata_busy_total",
+		"kubernetes_namespace_metadata_error_total",
+		"kubernetes_pod_metadata_success_total",
+		"kubernetes_pod_metadata_notfound_total",
+		"kubernetes_pod_metadata_busy_total",
+		"kubernetes_pod_metadata_error_total",
+		"kubernetes_record_seen_total",
 	}
-
-	if want, got := "https://host.domain.tld:6443", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	if len(points) != len(expectedNames) {
+		t.Fatalf(th.ExpectedPointsFmt, len(expectedNames), len(points))
 	}
-
-	point = points[1]
-	if want, got := "kubernetes_namespace_metadata_notfound_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[2]
-	if want, got := "kubernetes_namespace_metadata_busy_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[3]
-	if want, got := "kubernetes_namespace_metadata_error_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[4]
-	if want, got := "kubernetes_pod_metadata_success_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[5]
-	if want, got := "kubernetes_pod_metadata_notfound_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[6]
-	if want, got := "kubernetes_pod_metadata_busy_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[7]
-	if want, got := "kubernetes_pod_metadata_error_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[8]
-	if want, got := "kubernetes_record_seen_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	for i, name := range expectedNames {
+		if points[i].Name != name {
+			t.Errorf(th.WantStringFmt, name, points[i].Name)
+		}
+		th.AssertEqString(t, "label url", "https://host.domain.tld:6443", points[i].LabelValue)
 	}
 }

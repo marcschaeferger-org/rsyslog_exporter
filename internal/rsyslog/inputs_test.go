@@ -15,6 +15,8 @@ package rsyslog
 
 import (
 	"testing"
+
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 var (
@@ -24,7 +26,7 @@ var (
 func TestGetInput(t *testing.T) {
 	logType := GetStatType(inputLog)
 	if logType != TypeInput {
-		t.Errorf("detected pstat type should be %d but is %d", TypeInput, logType)
+		t.Errorf(th.DetectedTypeFmt, TypeInput, logType)
 	}
 
 	pstat, err := NewInputFromJSON([]byte(inputLog))
@@ -33,11 +35,11 @@ func TestGetInput(t *testing.T) {
 	}
 
 	if want, got := "test_input", pstat.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 
 	if want, got := int64(1000), pstat.Submitted; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 }
 
@@ -51,14 +53,14 @@ func TestInputtoPoints(t *testing.T) {
 
 	point := points[0]
 	if want, got := "input_submitted", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 
 	if want, got := int64(1000), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := "test_input", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 }

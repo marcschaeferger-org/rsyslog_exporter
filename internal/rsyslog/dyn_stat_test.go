@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 func TestGetDynStat(t *testing.T) {
@@ -30,8 +31,8 @@ func TestGetDynStat(t *testing.T) {
 		"msg_per_host.ops_ignored":    0,
 	}
 
-	if want, got := TypeDynStat, GetStatType(log); want != got {
-		t.Errorf("detected pstat type should be %d but is %d", want, got)
+	if got := GetStatType(log); got != TypeDynStat {
+		t.Errorf(th.DetectedTypeFmt, TypeDynStat, got)
 	}
 
 	pstat, err := NewDynStatFromJSON(log)
@@ -39,9 +40,7 @@ func TestGetDynStat(t *testing.T) {
 		t.Fatalf("expected parsing dynamic stat not to fail, got: %v", err)
 	}
 
-	if want, got := "global", pstat.Name; want != got {
-		t.Errorf("invalid name, want '%s', got '%s'", want, got)
-	}
+	th.AssertEqString(t, "dynstat name", "global", pstat.Name)
 
 	if want, got := values, pstat.Values; !reflect.DeepEqual(want, got) {
 		t.Errorf("unexpected values, want: %+v got: %+v", want, got)
@@ -55,7 +54,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       1,
-			Description: "dynamic statistic bucket global",
+			Description: th.DynStatDesc,
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.ops_overflow",
 		},
@@ -63,7 +62,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       3,
-			Description: "dynamic statistic bucket global",
+			Description: th.DynStatDesc,
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.new_metric_add",
 		},
@@ -71,7 +70,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,
-			Description: "dynamic statistic bucket global",
+			Description: th.DynStatDesc,
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.no_metric",
 		},
@@ -79,7 +78,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,
-			Description: "dynamic statistic bucket global",
+			Description: th.DynStatDesc,
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.metrics_purged",
 		},
@@ -87,7 +86,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Name:        "dynstat_global",
 			Type:        model.Counter,
 			Value:       0,
-			Description: "dynamic statistic bucket global",
+			Description: th.DynStatDesc,
 			LabelName:   "counter",
 			LabelValue:  "msg_per_host.ops_ignored",
 		},

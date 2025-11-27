@@ -15,6 +15,8 @@ package rsyslog
 
 import (
 	"testing"
+
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 var (
@@ -22,77 +24,39 @@ var (
 )
 
 func TestGetInputIMUDP(t *testing.T) {
-	logType := GetStatType(inputIMUDPLog)
-	if logType != TypeInputIMDUP {
-		t.Errorf("detected pstat type should be %d but is %d", TypeInputIMDUP, logType)
+	if got := GetStatType(inputIMUDPLog); got != TypeInputIMDUP {
+		t.Errorf(th.DetectedTypeFmt, TypeInputIMDUP, got)
 	}
-
-	pstat, err := NewInputIMUDPFromJSON([]byte(inputIMUDPLog))
+	pstat, err := NewInputIMUDPFromJSON(inputIMUDPLog)
 	if err != nil {
-		t.Fatalf("expected parsing input stat not to fail, got: %v", err)
+		t.Fatalf("parse input imudp stat failed: %v", err)
 	}
-
-	if want, got := "test_input_imudp", pstat.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(1000), pstat.Recvmmsg; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(2000), pstat.Recvmsg; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := int64(500), pstat.Received; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
+	th.AssertEqString(t, "name", "test_input_imudp", pstat.Name)
+	th.AssertEqInt(t, "recvmmsg", 1000, pstat.Recvmmsg)
+	th.AssertEqInt(t, "recvmsg", 2000, pstat.Recvmsg)
+	th.AssertEqInt(t, "received", 500, pstat.Received)
 }
 
 func TestInputIMUDPtoPoints(t *testing.T) {
-	pstat, err := NewInputIMUDPFromJSON([]byte(inputIMUDPLog))
+	pstat, err := NewInputIMUDPFromJSON(inputIMUDPLog)
 	if err != nil {
-		t.Fatalf("expected parsing input stat not to fail, got: %v", err)
+		t.Fatalf("parse input imudp stat failed: %v", err)
 	}
-
 	points := pstat.ToPoints()
-
-	point := points[0]
-	if want, got := "input_called_recvmmsg", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	expected := []struct {
+		name  string
+		value int64
+	}{
+		{"input_called_recvmmsg", 1000},
+		{"input_called_recvmsg", 2000},
+		{"input_received", 500},
 	}
-
-	if want, got := int64(1000), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+	if len(points) != len(expected) {
+		t.Fatalf(th.ExpectedPointsFmt, len(expected), len(points))
 	}
-
-	if want, got := "test_input_imudp", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[1]
-	if want, got := "input_called_recvmsg", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(2000), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "test_input_imudp", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	point = points[2]
-	if want, got := "input_received", point.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(500), point.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "test_input_imudp", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	for i, exp := range expected {
+		th.AssertEqString(t, exp.name+" name", exp.name, points[i].Name)
+		th.AssertEqInt(t, exp.name+" value", exp.value, points[i].Value)
+		th.AssertEqString(t, exp.name+" label", "test_input_imudp", points[i].LabelValue)
 	}
 }

@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 var (
@@ -26,7 +27,7 @@ var (
 func TestNewQueueFromJSON(t *testing.T) {
 	logType := GetStatType(queueStat)
 	if logType != TypeQueue {
-		t.Errorf("detected pstat type should be %d but is %d", TypeQueue, logType)
+		t.Errorf(th.DetectedTypeFmt, TypeQueue, logType)
 	}
 
 	pstat, err := NewQueueFromJSON([]byte(queueStat))
@@ -35,31 +36,31 @@ func TestNewQueueFromJSON(t *testing.T) {
 	}
 
 	if want, got := "main Q", pstat.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 
 	if want, got := int64(10), pstat.Size; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(20), pstat.Enqueued; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(30), pstat.Full; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(40), pstat.DiscardedFull; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(50), pstat.DiscardedNf; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(60), pstat.MaxQsize; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 }
 
@@ -88,7 +89,7 @@ func TestQueueToPoints(t *testing.T) {
 
 	for _, exp := range expected {
 		if exp.idx >= len(points) {
-			t.Fatalf("expected point index %d to exist", exp.idx)
+			t.Fatalf(th.ExpectedIndexFmt, exp.idx)
 		}
 		pt := points[exp.idx]
 		if pt.Name != exp.name {
