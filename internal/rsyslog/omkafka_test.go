@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"testing"
 
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
+
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
@@ -27,7 +29,7 @@ var (
 func TestNewOmkafkaFromJSON(t *testing.T) {
 	logType := GetStatType(omkafkaLog)
 	if logType != TypeOmkafka {
-		t.Errorf("detected pstat type should be %d but is %d", TypeOmkafka, logType)
+		t.Errorf(th.DetectedTypeFmt, TypeOmkafka, logType)
 	}
 
 	_, err := NewOmkafkaFromJSON([]byte(omkafkaLog))

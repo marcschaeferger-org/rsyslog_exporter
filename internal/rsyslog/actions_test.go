@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 var (
@@ -26,7 +27,7 @@ var (
 func TestNewActionFromJSON(t *testing.T) {
 	logType := GetStatType(actionLog)
 	if logType != TypeAction {
-		t.Errorf("detected pstat type should be %d but is %d", TypeAction, logType)
+		t.Errorf(th.DetectedTypeFmt, TypeAction, logType)
 	}
 
 	pstat, err := NewActionFromJSON([]byte(actionLog))
@@ -35,7 +36,7 @@ func TestNewActionFromJSON(t *testing.T) {
 	}
 
 	if want, got := "test_action", pstat.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 
 	if want, got := int64(100000), pstat.Processed; want != got {

@@ -16,6 +16,8 @@ package rsyslog
 import (
 	"testing"
 
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
+
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 )
 
@@ -24,46 +26,32 @@ var (
 )
 
 func TestNewForwardFromJSON(t *testing.T) {
-	logType := GetStatType(forwardLog)
-	if logType != TypeForward {
-		t.Errorf("detected pstat type should be %d but is %d", TypeForward, logType)
+	if got := GetStatType(forwardLog); got != TypeForward {
+		t.Errorf(th.DetectedTypeFmt, TypeForward, got)
 	}
-
-	pstat, err := NewForwardFromJSON([]byte(forwardLog))
+	pstat, err := NewForwardFromJSON(forwardLog)
 	if err != nil {
-		t.Fatalf("expected parsing action not to fail, got: %v", err)
+		t.Fatalf("parse forward stat failed: %v", err)
 	}
-
-	if want, got := "TCP-FQDN-6514", pstat.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
-
-	if want, got := int64(666), pstat.BytesSent; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
+	th.AssertEqString(t, "name", "TCP-FQDN-6514", pstat.Name)
+	th.AssertEqInt(t, "bytes_sent", 666, pstat.BytesSent)
 }
 
 func TestForwardToPoints(t *testing.T) {
-	pstat, err := NewForwardFromJSON([]byte(forwardLog))
+	pstat, err := NewForwardFromJSON(forwardLog)
 	if err != nil {
-		t.Fatalf("expected parsing action not to fail, got: %v", err)
+		t.Fatalf("parse forward stat failed: %v", err)
 	}
 	points := pstat.ToPoints()
-
-	point := points[0]
-	if want, got := "forward_bytes_total", point.Name; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
+	if len(points) != 1 {
+		t.Fatalf(th.ExpectedPointsFmt, 1, len(points))
 	}
-
-	if want, got := int64(666), point.Value; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
+	p := points[0]
+	th.AssertEqString(t, "point name", "forward_bytes_total", p.Name)
+	th.AssertEqInt(t, "point value", 666, p.Value)
+	th.AssertEqString(t, "point label", "TCP-FQDN-6514", p.LabelValue)
+	if p.Type != model.Counter {
+		t.Errorf("point type: expected %v, got %v", model.Counter, p.Type)
 	}
-
-	if want, got := model.Counter, point.Type; want != got {
-		t.Errorf("wanted '%d', got '%d'", want, got)
-	}
-
-	if want, got := "TCP-FQDN-6514", point.LabelValue; want != got {
-		t.Errorf("wanted '%s', got '%s'", want, got)
-	}
+	th.AssertEqString(t, "point label", "TCP-FQDN-6514", p.LabelValue)
 }

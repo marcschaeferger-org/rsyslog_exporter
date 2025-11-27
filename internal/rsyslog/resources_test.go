@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
 )
 
 var (
@@ -26,7 +27,7 @@ var (
 func TestNewResourceFromJSON(t *testing.T) {
 	logType := GetStatType(resourceLog)
 	if logType != TypeResource {
-		t.Errorf("detected pstat type should be %d but is %d", TypeResource, logType)
+		t.Errorf(th.DetectedTypeFmt, TypeResource, logType)
 	}
 
 	pstat, err := NewResourceFromJSON([]byte(resourceLog))
@@ -35,43 +36,43 @@ func TestNewResourceFromJSON(t *testing.T) {
 	}
 
 	if want, got := "resource-usage", pstat.Name; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(th.WantStringFmt, want, got)
 	}
 
 	if want, got := int64(10), pstat.Utime; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(20), pstat.Stime; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(30), pstat.Maxrss; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(40), pstat.Minflt; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(50), pstat.Majflt; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(60), pstat.Inblock; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(70), pstat.Outblock; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(80), pstat.Nvcsw; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	if want, got := int64(90), pstat.Nivcsw; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 }
 
@@ -103,7 +104,7 @@ func TestResourceToPoints(t *testing.T) {
 
 	for _, exp := range expected {
 		if exp.idx >= len(points) {
-			t.Fatalf("expected point index %d to exist", exp.idx)
+			t.Fatalf(th.ExpectedIndexFmt, exp.idx)
 		}
 		pt := points[exp.idx]
 		if pt.Name != exp.name {
