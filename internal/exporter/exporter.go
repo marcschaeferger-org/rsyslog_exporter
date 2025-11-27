@@ -182,7 +182,8 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
-		labelValues := []string{}
+		var labelValues []string
+
 		if p.PromLabelValue() != "" {
 			labelValues = []string{p.PromLabelValue()}
 		}
@@ -197,7 +198,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (re *Exporter) run(silent bool) error {
+func (re *Exporter) runLoop(silent bool) error {
 	errorPoint := &model.Point{
 		Name:        "stats_line_errors",
 		Type:        model.Counter,
@@ -225,5 +226,5 @@ func (re *Exporter) run(silent bool) error {
 // Run starts the exporter loop. Exported for use by the cmd package.
 // It returns when stdin scanning ends; callers (e.g. main) should decide whether to exit the process.
 func (re *Exporter) Run(silent bool) error {
-	return re.run(silent)
+	return re.runLoop(silent)
 }

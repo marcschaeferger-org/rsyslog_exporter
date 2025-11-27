@@ -36,7 +36,7 @@ type Point struct {
 }
 
 func (p *Point) PromDescription() *prometheus.Desc {
-	variableLabels := []string{}
+	var variableLabels []string
 	if p.PromLabelName() != "" {
 		variableLabels = []string{p.PromLabelName()}
 	}
