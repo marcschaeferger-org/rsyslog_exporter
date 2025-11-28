@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"io"
@@ -22,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	exporter "github.com/prometheus-community/rsyslog_exporter/internal/exporter"
@@ -61,25 +63,71 @@ func main() {
 	flag.Parse()
 	re := exporter.New()
 
-	go runInterruptWatcher()
-	go runExporterLoop(re, *silent)
+	// root context for the application; cancel on shutdown to allow
+	// future components to observe cancellation.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// start exporter loop (reads stdin until EOF). Pass root context so
+	// it can be canceled on shutdown.
+	go func() {
+		if err := re.Run(ctx, *silent); err != nil {
+			log.Printf("exporter run ended with error: %v", err)
+		} else {
+			log.Print("exporter run ended normally")
+		}
+	}()
 
 	mux := http.NewServeMux()
-	registerHandlers(mux, *metricPath, re, prometheus.NewRegistry()) // use a fresh registry to avoid double registration during tests
+	// use a fresh registry to avoid double registration during tests,
+	// but register the standard collectors so runtime/process metrics
+	// are exposed in production.
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(prometheus.NewGoCollector())
+	reg.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	registerHandlers(mux, *metricPath, re, reg)
 
 	srv := buildServer(*listenAddress, mux)
-	startServer(srv, *listenAddress, *certPath, *keyPath)
-}
 
-func runInterruptWatcher() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-	log.Print("interrupt received")
+	// start the HTTP server asynchronously and get an error channel.
+	serverErrC := startServerAsync(srv, *listenAddress, *certPath, *keyPath)
+
+	// listen for SIGINT and SIGTERM and trigger graceful shutdown.
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case sig := <-sigC:
+		log.Printf("signal received: %v, shutting down", sig)
+		// give the server up to 5s to shutdown cleanly
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("error during server shutdown: %v", err)
+		} else {
+			log.Print("server shutdown complete")
+		}
+		// cancel root context so other components can stop if wired up
+		cancel()
+		osExit(0)
+	case err := <-serverErrC:
+		// server terminated on its own; if it's a real error, report it.
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			exitOnErr(err)
+		}
+	case <-ctx.Done():
+		// defensive: if root context is canceled, attempt shutdown as above
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("error during server shutdown: %v", err)
+		}
+		osExit(0)
+	}
 }
 
 func runExporterLoop(re *exporter.Exporter, silent bool) {
-	if err := re.Run(silent); err != nil {
+	if err := re.Run(context.Background(), silent); err != nil {
 		log.Printf("exporter run ended with error: %v", err)
 		return
 	}
@@ -115,18 +163,40 @@ func buildServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
+func startServerAsync(srv *http.Server, listenAddr, certPath, keyPath string) <-chan error {
+	errC := make(chan error, 1)
+
+	go func() {
+		if certPath == "" && keyPath == "" {
+			log.Printf("Listening on %s", listenAddr)
+			errC <- srv.ListenAndServe()
+			return
+		}
+		if certPath == "" || keyPath == "" {
+			errC <- errors.New("Both tls.server-crt and tls.server-key must be specified")
+			return
+		}
+		log.Printf("Listening for TLS on %s", listenAddr)
+		errC <- srv.ListenAndServeTLS(certPath, keyPath)
+	}()
+
+	return errC
+}
+
+// startServer is the legacy, blocking variant used by unit tests. It starts
+// the server asynchronously then blocks waiting for the first error and
+// forwards it to the exit hook (maintains previous behavior used by tests).
 func startServer(srv *http.Server, listenAddr, certPath, keyPath string) {
-	if certPath == "" && keyPath == "" {
-		log.Printf("Listening on %s", listenAddr)
-		exitOnErr(srv.ListenAndServe())
-		return
-	}
-	if certPath == "" || keyPath == "" {
-		exitOnErr(errors.New("Both tls.server-crt and tls.server-key must be specified"))
-		return
-	}
-	log.Printf("Listening for TLS on %s", listenAddr)
-	exitOnErr(srv.ListenAndServeTLS(certPath, keyPath))
+	errC := startServerAsync(srv, listenAddr, certPath, keyPath)
+	err := <-errC
+	exitOnErr(err)
+}
+
+func runInterruptWatcher() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	log.Print("interrupt received")
 }
 
 // (old setupSyslog removed; use the injectable setupSyslog above)

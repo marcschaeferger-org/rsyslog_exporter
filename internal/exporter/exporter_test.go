@@ -16,6 +16,7 @@ package exporter
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -398,7 +399,7 @@ func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
 	re.scanner = bufio.NewScanner(buf)
 
 	// run loop with silent=false so it logs error but we don't assert logs
-	if err := re.runLoop(false); err != nil {
+	if err := re.runLoop(context.Background(), false); err != nil {
 		t.Fatalf("runLoop failed: %v", err)
 	}
 
@@ -415,7 +416,7 @@ func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
 	br := &brokenReader{data: []byte("col1 col2 col3 {\"name\":\"global\"}")}
 	re2 := New()
 	re2.scanner = bufio.NewScanner(br)
-	if err := re2.runLoop(true); err == nil {
+	if err := re2.runLoop(context.Background(), true); err == nil {
 		t.Fatalf("expected runLoop to return scanner error")
 	}
 }
@@ -484,7 +485,7 @@ func TestRunExported(t *testing.T) {
 	re := New()
 	buf := bytes.NewBufferString("col1 col2 col3 {\"submitted\":1}\n")
 	re.scanner = bufio.NewScanner(buf)
-	if err := re.Run(true); err != nil {
+	if err := re.Run(context.Background(), true); err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
 }

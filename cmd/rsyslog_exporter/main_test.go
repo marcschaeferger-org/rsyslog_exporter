@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -108,7 +109,7 @@ func TestStartServerNoTLSImmediateError(t *testing.T) {
 	exitOnErr = func(err error) { gotErr = err }
 
 	mux := http.NewServeMux()
-srv := buildServer("127.0.0.1:-1", mux) // invalid port forces immediate error
+	srv := buildServer("127.0.0.1:-1", mux) // invalid port forces immediate error
 	startServer(srv, srv.Addr, "", "")
 	if gotErr == nil {
 		t.Fatalf("expected error from ListenAndServe")
@@ -234,5 +235,95 @@ func TestRunInterruptWatcher(t *testing.T) {
 	case <-done:
 	case <-time.After(100 * time.Millisecond):
 		t.Fatalf("interrupt watcher did not return in time")
+	}
+}
+
+func TestGracefulShutdownSIGINT(t *testing.T) {
+	// configure flags
+	*listenAddress = "127.0.0.1:0"
+	*metricPath = "/metrics"
+	*certPath = ""
+	*keyPath = ""
+	*silent = true
+
+	// intercept osExit
+	origExit := osExit
+	defer func() { osExit = origExit }()
+	got := make(chan int, 1)
+	osExit = func(code int) { got <- code }
+
+	// intercept exitOnErr to fail the test if invoked
+	origFatal := exitOnErr
+	defer func() { exitOnErr = origFatal }()
+	exitOnErr = func(err error) { t.Fatalf("unexpected exitOnErr: %v", err) }
+
+	// block stdin so exporter.Run doesn't return immediately
+	origStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	_ = w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = origStdin; _ = r.Close() }()
+
+	// run main in goroutine
+	go main()
+
+	// give main time to start server
+	time.Sleep(50 * time.Millisecond)
+
+	p, _ := os.FindProcess(os.Getpid())
+	_ = p.Signal(syscall.SIGINT)
+
+	select {
+	case code := <-got:
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d", code)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("graceful shutdown on SIGINT did not complete in time")
+	}
+}
+
+func TestGracefulShutdownSIGTERM(t *testing.T) {
+	// configure flags
+	*listenAddress = "127.0.0.1:0"
+	*metricPath = "/metrics"
+	*certPath = ""
+	*keyPath = ""
+	*silent = true
+
+	// intercept osExit
+	origExit := osExit
+	defer func() { osExit = origExit }()
+	got := make(chan int, 1)
+	osExit = func(code int) { got <- code }
+
+	// intercept exitOnErr to fail the test if invoked
+	origFatal := exitOnErr
+	defer func() { exitOnErr = origFatal }()
+	exitOnErr = func(err error) { t.Fatalf("unexpected exitOnErr: %v", err) }
+
+	// block stdin so exporter.Run doesn't return immediately
+	origStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	_ = w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = origStdin; _ = r.Close() }()
+
+	// run main in goroutine
+	go main()
+
+	// give main time to start server
+	time.Sleep(50 * time.Millisecond)
+
+	p, _ := os.FindProcess(os.Getpid())
+	_ = p.Signal(syscall.SIGTERM)
+
+	select {
+	case code := <-got:
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d", code)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("graceful shutdown on SIGTERM did not complete in time")
 	}
 }

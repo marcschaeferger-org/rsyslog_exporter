@@ -16,6 +16,7 @@ package exporter
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -205,7 +206,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (re *Exporter) runLoop(silent bool) error {
+func (re *Exporter) runLoop(ctx context.Context, silent bool) error {
 	errorPoint := &model.Point{
 		Name:        "stats_line_errors",
 		Type:        model.Counter,
@@ -213,25 +214,55 @@ func (re *Exporter) runLoop(silent bool) error {
 	}
 	// nolint:errcheck
 	re.Set(errorPoint)
-	for re.scanner.Scan() {
-		err := re.handleStatLine(re.scanner.Bytes())
-		if err != nil {
-			errorPoint.Value += 1
-			if !silent {
-				log.Printf("error handling stats line: %v, line was: %s", err, re.scanner.Bytes())
+	// scan lines in a goroutine and send them on a channel so we can
+	// select between incoming lines and context cancellation.
+	type scanResult struct {
+		line []byte
+		err  error
+	}
+	ch := make(chan scanResult)
+
+	go func() {
+		for re.scanner.Scan() {
+			// copy the bytes since scanner reuses internal buffer
+			b := make([]byte, len(re.scanner.Bytes()))
+			copy(b, re.scanner.Bytes())
+			ch <- scanResult{line: b}
+		}
+		if err := re.scanner.Err(); err != nil {
+			ch <- scanResult{err: err}
+		}
+		close(ch)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Print("runLoop: context canceled, returning")
+			return ctx.Err()
+		case res, ok := <-ch:
+			if !ok {
+				// channel closed = scanner EOF
+				log.Print("input ended, returning from run")
+				return nil
+			}
+			if res.err != nil {
+				log.Printf("error reading input: %v", res.err)
+				return res.err
+			}
+			err := re.handleStatLine(res.line)
+			if err != nil {
+				errorPoint.Value += 1
+				if !silent {
+					log.Printf("error handling stats line: %v, line was: %s", err, res.line)
+				}
 			}
 		}
 	}
-	if err := re.scanner.Err(); err != nil {
-		log.Printf("error reading input: %v", err)
-		return err
-	}
-	log.Print("input ended, returning from run")
-	return nil
 }
 
 // Run starts the exporter loop. Exported for use by the cmd package.
 // It returns when stdin scanning ends; callers (e.g. main) should decide whether to exit the process.
-func (re *Exporter) Run(silent bool) error {
-	return re.runLoop(silent)
+func (re *Exporter) Run(ctx context.Context, silent bool) error {
+	return re.runLoop(ctx, silent)
 }

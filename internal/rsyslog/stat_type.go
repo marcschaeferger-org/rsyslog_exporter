@@ -13,7 +13,10 @@
 
 package rsyslog
 
-import "strings"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // Type classifies rsyslog impstats messages by their content.
 type Type int
@@ -37,7 +40,30 @@ func StatType(buf []byte) Type {
 	line := string(buf)
 	if strings.Contains(line, "processed") {
 		return TypeAction
-	} else if strings.Contains(line, "\"name\": \"omkafka\"") {
+	}
+
+	// Try to parse the JSON object and check the "name" field when possible.
+	// This handles both `"name":"omkafka"` and `"name": "omkafka"` forms.
+	var obj map[string]any
+	if err := json.Unmarshal(buf, &obj); err == nil {
+		if v, ok := obj["name"]; ok {
+			if s, ok := v.(string); ok {
+				switch s {
+				case "omkafka":
+					// omkafka lines have a submitted field and must be classified before TypeInput
+					return TypeOmkafka
+				case "omfwd":
+					return TypeForward
+				}
+				if strings.HasPrefix(s, "mmkubernetes") {
+					return TypeKubernetes
+				}
+			}
+		}
+	}
+
+	// Fallback to older substring checks.
+	if strings.Contains(line, "\"name\": \"omkafka\"") {
 		// Not checking for just omkafka here as multiple actions may/will contain that word.
 		// omkafka lines have a submitted field, so they need to be filtered before TypeInput
 		return TypeOmkafka
