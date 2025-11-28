@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	queueStat = []byte(`{"name":"main Q","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
+	queueStat = []byte(`{"name":"` + th.MainQ + `","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
 )
 
 func TestNewQueueFromJSON(t *testing.T) {
@@ -35,7 +35,7 @@ func TestNewQueueFromJSON(t *testing.T) {
 		t.Fatalf("expected parsing queue stat not to fail, got: %v", err)
 	}
 
-	if want, got := "main Q", pstat.Name; want != got {
+	if want, got := th.MainQ, pstat.Name; want != got {
 		t.Errorf(th.WantStringFmt, want, got)
 	}
 
@@ -79,12 +79,12 @@ func TestQueueToPoints(t *testing.T) {
 		labelValue string
 	}
 	expected := []expectation{
-		{0, "queue_size", 10, model.Gauge, "main Q"},
-		{1, "queue_enqueued", 20, model.Counter, "main Q"},
-		{2, "queue_full", 30, model.Counter, "main Q"},
-		{3, "queue_discarded_full", 40, model.Counter, "main Q"},
-		{4, "queue_discarded_not_full", 50, model.Counter, "main Q"},
-		{5, "queue_max_size", 60, model.Gauge, "main Q"},
+		{0, "queue_size", 10, model.Gauge, th.MainQ},
+		{1, "queue_enqueued", 20, model.Counter, th.MainQ},
+		{2, "queue_full", 30, model.Counter, th.MainQ},
+		{3, "queue_discarded_full", 40, model.Counter, th.MainQ},
+		{4, "queue_discarded_not_full", 50, model.Counter, th.MainQ},
+		{5, "queue_max_size", 60, model.Gauge, th.MainQ},
 	}
 
 	for _, exp := range expected {

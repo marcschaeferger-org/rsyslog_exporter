@@ -22,13 +22,13 @@ import (
 )
 
 func TestGetDynStat(t *testing.T) {
-	log := []byte(`{ "name": "global", "origin": "dynstats", "values": { "msg_per_host.ops_overflow": 1, "msg_per_host.new_metric_add": 3, "msg_per_host.no_metric": 0, "msg_per_host.metrics_purged": 0, "msg_per_host.ops_ignored": 0 } }`)
+	log := []byte(`{ "name": "global", "origin": "dynstats", "values": { "` + th.MsgPerHostOpsOverflow + `": 1, "` + th.MsgPerHostNewMetricAdd + `": 3, "` + th.MsgPerHostNoMetric + `": 0, "` + th.MsgPerHostMetricsPurged + `": 0, "` + th.MsgPerHostOpsIgnored + `": 0 } }`)
 	values := map[string]int64{
-		"msg_per_host.ops_overflow":   1,
-		"msg_per_host.new_metric_add": 3,
-		"msg_per_host.no_metric":      0,
-		"msg_per_host.metrics_purged": 0,
-		"msg_per_host.ops_ignored":    0,
+		th.MsgPerHostOpsOverflow:   1,
+		th.MsgPerHostNewMetricAdd:  3,
+		th.MsgPerHostNoMetric:      0,
+		th.MsgPerHostMetricsPurged: 0,
+		th.MsgPerHostOpsIgnored:    0,
 	}
 
 	if got := GetStatType(log); got != TypeDynStat {
@@ -56,7 +56,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Value:       1,
 			Description: th.DynStatDesc,
 			LabelName:   "counter",
-			LabelValue:  "msg_per_host.ops_overflow",
+			LabelValue:  th.MsgPerHostOpsOverflow,
 		},
 		"msg_per_host.new_metric_add": {
 			Name:        "dynstat_global",
@@ -64,7 +64,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Value:       3,
 			Description: th.DynStatDesc,
 			LabelName:   "counter",
-			LabelValue:  "msg_per_host.new_metric_add",
+			LabelValue:  th.MsgPerHostNewMetricAdd,
 		},
 		"msg_per_host.no_metric": {
 			Name:        "dynstat_global",
@@ -72,7 +72,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Value:       0,
 			Description: th.DynStatDesc,
 			LabelName:   "counter",
-			LabelValue:  "msg_per_host.no_metric",
+			LabelValue:  th.MsgPerHostNoMetric,
 		},
 		"msg_per_host.metrics_purged": {
 			Name:        "dynstat_global",
@@ -80,7 +80,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Value:       0,
 			Description: th.DynStatDesc,
 			LabelName:   "counter",
-			LabelValue:  "msg_per_host.metrics_purged",
+			LabelValue:  th.MsgPerHostMetricsPurged,
 		},
 		"msg_per_host.ops_ignored": {
 			Name:        "dynstat_global",
@@ -88,7 +88,7 @@ func TestDynStatToPoints(t *testing.T) {
 			Value:       0,
 			Description: th.DynStatDesc,
 			LabelName:   "counter",
-			LabelValue:  "msg_per_host.ops_ignored",
+			LabelValue:  th.MsgPerHostOpsIgnored,
 		},
 	}
 

@@ -115,42 +115,42 @@ func TestHandleLineWithResource(t *testing.T) {
 		{
 			Name:       "resource_utime",
 			Val:        10,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_stime",
 			Val:        20,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_maxrss",
 			Val:        30,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_minflt",
 			Val:        40,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_majflt",
 			Val:        50,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_inblock",
 			Val:        60,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_oublock",
 			Val:        70,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_nvcsw",
 			Val:        80,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 		{
 			Name:       "resource_nivcsw",
@@ -159,7 +159,7 @@ func TestHandleLineWithResource(t *testing.T) {
 		},
 	}
 
-	resourceLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"resource-usage","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"oublock":70,"nvcsw":80,"nivcsw":90}`)
+	resourceLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.ResourceUsage + `","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"oublock":70,"nvcsw":80,"nivcsw":90}`)
 	testHelper(t, resourceLog, tests)
 }
 
@@ -181,36 +181,36 @@ func TestHandleLineWithQueue(t *testing.T) {
 		{
 			Name:       "queue_size",
 			Val:        10,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 		{
 			Name:       "queue_enqueued",
 			Val:        20,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 		{
 			Name:       "queue_full",
 			Val:        30,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 		{
 			Name:       "queue_discarded_full",
 			Val:        40,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 		{
 			Name:       "queue_discarded_not_full",
 			Val:        50,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 		{
 			Name:       "queue_max_size",
 			Val:        60,
-			LabelValue: "main Q",
+			LabelValue: th.MainQ,
 		},
 	}
 
-	queueLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"main Q","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
+	queueLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.MainQ + `","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
 	testHelper(t, queueLog, tests)
 }
 
@@ -219,31 +219,31 @@ func TestHandleLineWithGlobal(t *testing.T) {
 		{
 			Name:       "dynstat_global",
 			Val:        1,
-			LabelValue: "msg_per_host.ops_overflow",
+			LabelValue: th.MsgPerHostOpsOverflow,
 		},
 		{
 			Name:       "dynstat_global",
 			Val:        3,
-			LabelValue: "msg_per_host.new_metric_add",
+			LabelValue: th.MsgPerHostNewMetricAdd,
 		},
 		{
 			Name:       "dynstat_global",
 			Val:        0,
-			LabelValue: "msg_per_host.no_metric",
+			LabelValue: th.MsgPerHostNoMetric,
 		},
 		{
 			Name:       "dynstat_global",
 			Val:        0,
-			LabelValue: "msg_per_host.metrics_purged",
+			LabelValue: th.MsgPerHostMetricsPurged,
 		},
 		{
 			Name:       "dynstat_global",
 			Val:        0,
-			LabelValue: "msg_per_host.ops_ignored",
+			LabelValue: th.MsgPerHostOpsIgnored,
 		},
 	}
 
-	log := []byte(`2018-01-18T09:39:12.763025+00:00 some-node.example.org rsyslogd-pstats: { "name": "global", "origin": "dynstats", "values": { "msg_per_host.ops_overflow": 1, "msg_per_host.new_metric_add": 3, "msg_per_host.no_metric": 0, "msg_per_host.metrics_purged": 0, "msg_per_host.ops_ignored": 0 } }`)
+	log := []byte(`2018-01-18T09:39:12.763025+00:00 some-node.example.org rsyslogd-pstats: { "name": "global", "origin": "dynstats", "values": { "` + th.MsgPerHostOpsOverflow + `": 1, "` + th.MsgPerHostNewMetricAdd + `": 3, "` + th.MsgPerHostNoMetric + `": 0, "` + th.MsgPerHostMetricsPurged + `": 0, "` + th.MsgPerHostOpsIgnored + `": 0 } }`)
 
 	testHelper(t, log, tests)
 }
