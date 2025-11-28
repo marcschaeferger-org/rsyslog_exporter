@@ -29,7 +29,8 @@ import (
 
 // Build a fake log line as the exporter expects: 4 columns with the JSON in the 4th.
 func resourceLineJSON(name string, utime int64) []byte {
-	js := fmt.Sprintf(`{"name":"%s","utime":%d,"stime":0,"maxrss":0,"minflt":0,"majflt":0,"inblock":0,"oublock":0,"nvcsw":0,"nivcsw":0}`, name, utime)
+	// Use %q to ensure proper JSON string quoting and escaping of name.
+	js := fmt.Sprintf(`{"name":%q,"utime":%d,"stime":0,"maxrss":0,"minflt":0,"majflt":0,"inblock":0,"oublock":0,"nvcsw":0,"nivcsw":0}`, name, utime)
 	// prefix three columns separated by space to mimic the format processed by handleStatLine
 	return []byte("col1 col2 col3 " + js)
 }
@@ -381,7 +382,8 @@ type errorAfterFirstRead struct{ used bool }
 func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
 	if !e.used {
 		e.used = true
-		copy(p, []byte("incomplete"))
+		// copy supports string directly; avoid redundant []byte conversion.
+		copy(p, "incomplete")
 		return len("incomplete"), nil
 	}
 	return 0, fmt.Errorf("read error")
@@ -424,7 +426,7 @@ func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
 		t.Fatalf("expected stats_line_errors point: %v", err)
 	}
 	if p.Value < 1 {
-		t.Fatalf("expected stats_line_errors >= 1, got %d", p.Value)
+		t.Fatalf(statsLineErrMsg, p.Value)
 	}
 
 	// Now test scanner.Err path using brokenReader
@@ -494,6 +496,61 @@ func TestCollectErrorBranch(t *testing.T) {
 	ch := make(chan prometheus.Metric, 10)
 	re.Collect(ch)
 	// if we reached here without panic, the error branch was exercised via continue
+}
+
+const statsLineErrMsg = "expected stats_line_errors >= 1, got %d"
+
+// --- merged from runloop_test.go ---
+
+// TestRunLoopErrorIncrementsCounterSilent exercises the branch where handleStatLine
+// returns an error and silent=true so logging is suppressed but the error counter
+// is still incremented.
+func TestRunLoopErrorIncrementsCounterSilent(t *testing.T) {
+	re := New()
+
+	// prepare input: malformed line will cause handleStatLine to return error
+	buf := bytes.NewBufferString("bad line without enough columns\n")
+	re.scanner = bufio.NewScanner(buf)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	// run loop; scanner will reach EOF and runLoop should return nil
+	if err := re.runLoop(ctx, true); err != nil {
+		t.Fatalf("unexpected error from runLoop: %v", err)
+	}
+
+	// verify the stats_line_errors counter exists and was incremented
+	p, err := re.Get("stats_line_errors")
+	if err != nil {
+		t.Fatalf("expected stats_line_errors present: %v", err)
+	}
+	if p.Value < 1 {
+		t.Fatalf(statsLineErrMsg, p.Value)
+	}
+}
+
+// TestRunLoopErrorLogsWhenNotSilent verifies that when silent=false the runLoop
+// still increments the counter and behaves similarly (log output isn't asserted).
+func TestRunLoopErrorLogsWhenNotSilent(t *testing.T) {
+	re := New()
+	buf := bytes.NewBufferString("still bad\n")
+	re.scanner = bufio.NewScanner(buf)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	if err := re.runLoop(ctx, false); err != nil {
+		t.Fatalf("unexpected error from runLoop: %v", err)
+	}
+
+	p, err := re.Get("stats_line_errors")
+	if err != nil {
+		t.Fatalf("expected stats_line_errors present: %v", err)
+	}
+	if p.Value < 1 {
+		t.Fatalf(statsLineErrMsg, p.Value)
+	}
 }
 
 func TestRunLoopScannerErrWithCanceledCtx(t *testing.T) {

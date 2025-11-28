@@ -22,7 +22,9 @@ type fakeT struct {
 	errs []string
 }
 
-func (*fakeT) Helper() {}
+func (*fakeT) Helper() {
+	// Intentionally empty: satisfies testing.TB Helper interface to adjust stack depth in error reports.
+}
 func (f *fakeT) Errorf(format string, args ...interface{}) {
 	f.errs = append(f.errs, fmt.Sprintf(format, args...))
 }

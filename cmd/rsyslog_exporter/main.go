@@ -105,7 +105,7 @@ func main() {
 		// give the server up to 5s to shutdown cleanly
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
-		if err := srv.Shutdown(shutdownCtx); err != nil {
+		if err := shutdownServer(srv, shutdownCtx); err != nil {
 			log.Printf("error during server shutdown: %v", err)
 		} else {
 			log.Print("server shutdown complete")
@@ -124,7 +124,7 @@ func main() {
 		// defensive: if root context is canceled, attempt shutdown as above
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
-		if err := srv.Shutdown(shutdownCtx); err != nil {
+		if err := shutdownServer(srv, shutdownCtx); err != nil {
 			log.Printf("error during server shutdown: %v", err)
 		}
 		// ensure the shutdown timeout context is cancelled before exiting
@@ -162,7 +162,7 @@ func buildServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
-func startServerAsync(srv *http.Server, listenAddr, certPath, keyPath string) <-chan error {
+var startServerAsync = func(srv *http.Server, listenAddr, certPath, keyPath string) <-chan error {
 	errC := make(chan error, 1)
 
 	go func() {
@@ -183,3 +183,8 @@ func startServerAsync(srv *http.Server, listenAddr, certPath, keyPath string) <-
 }
 
 // (old setupSyslog removed; use the injectable setupSyslog above)
+
+// shutdownServer is injectable for tests to simulate server shutdown behavior.
+var shutdownServer = func(srv *http.Server, ctx context.Context) error {
+	return srv.Shutdown(ctx)
+}

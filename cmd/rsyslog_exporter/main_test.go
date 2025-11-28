@@ -223,16 +223,7 @@ func TestMainFunctionCoversTLSBranch(t *testing.T) {
 	main()
 }
 
-type errReader struct{ used bool }
-
-func (e *errReader) Read(p []byte) (int, error) {
-	if !e.used {
-		e.used = true
-		copy(p, []byte(sampleLine))
-		return len(sampleLine), nil
-	}
-	return 0, fmt.Errorf("reader error")
-}
+// (previous errReader helper removed as unused)
 
 // Test-only helpers (moved from testhooks_test.go) to avoid staticcheck warnings
 var exporterRunHook = func(re *exporter.Exporter, silent bool) error {
@@ -277,7 +268,7 @@ func TestRunExporterLoopNormal(t *testing.T) {
 	runExporterLoop(re, true)
 }
 
-func TestRunExporterLoopError(t *testing.T) {
+func TestRunExporterLoopError(_ *testing.T) {
 	origHook := exporterRunHook
 	defer func() { exporterRunHook = origHook }()
 	exporterRunHook = func(_ *exporter.Exporter, _ bool) error { return fmt.Errorf("boom") }
@@ -433,5 +424,96 @@ func TestGracefulShutdownSIGTERM(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("graceful shutdown on SIGTERM did not complete in time")
+	}
+}
+
+func TestMainServerErrorPath(t *testing.T) {
+	// configure flags to not interfere with startup
+	*listenAddress = ":0"
+	*metricPath = defaultMetricPath
+	*certPath = ""
+	*keyPath = ""
+	*silent = true
+
+	// stub startServerAsync to return a channel that yields an error
+	origStart := startServerAsync
+	defer func() { startServerAsync = origStart }()
+	errC := make(chan error, 1)
+	startServerAsync = func(_ *http.Server, _ string, _ string, _ string) <-chan error {
+		return errC
+	}
+
+	// capture exitOnErr invocation
+	origExitOnErr := exitOnErr
+	defer func() { exitOnErr = origExitOnErr }()
+	gotErr := make(chan error, 1)
+	exitOnErr = func(err error) { gotErr <- err }
+
+	// block stdin to keep exporter.Run from returning immediately
+	origStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	_ = w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = origStdin; _ = r.Close() }()
+
+	// run main in goroutine
+	go main()
+
+	// send an error on the server channel
+	testErr := errors.New("server failed")
+	errC <- testErr
+
+	select {
+	case e := <-gotErr:
+		if e == nil || e.Error() != testErr.Error() {
+			t.Fatalf("unexpected error forwarded to exitOnErr: %v", e)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("exitOnErr was not called in time")
+	}
+}
+
+func TestMainShutdownError(t *testing.T) {
+	*listenAddress = anyListenZero
+	*metricPath = defaultMetricPath
+	*certPath = ""
+	*keyPath = ""
+	*silent = true
+
+	// stub shutdownServer to return an error
+	origShutdown := shutdownServer
+	defer func() { shutdownServer = origShutdown }()
+	shutdownServer = func(_ *http.Server, _ context.Context) error { return errors.New("shutdown failed") }
+
+	// intercept osExit to prevent exiting and capture code
+	origExit := osExit
+	defer func() { osExit = origExit }()
+	got := make(chan int, 1)
+	osExit = func(code int) { got <- code }
+
+	// intercept exitOnErr to fail the test if invoked
+	origFatal := exitOnErr
+	defer func() { exitOnErr = origFatal }()
+	exitOnErr = func(err error) { t.Fatalf(msgUnexpectedExitOnErrFmt, err) }
+
+	// block stdin
+	origStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	_ = w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = origStdin; _ = r.Close() }()
+
+	go main()
+	time.Sleep(50 * time.Millisecond)
+	p, _ := os.FindProcess(os.Getpid())
+	_ = p.Signal(syscall.SIGINT)
+
+	select {
+	case code := <-got:
+		if code != 0 {
+			t.Fatalf(msgExpectedExitCodeFmt, code)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("shutdown error path did not complete in time")
 	}
 }

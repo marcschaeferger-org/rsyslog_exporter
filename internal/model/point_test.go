@@ -20,6 +20,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const wantGotFmt = "want '%s', got '%s'" // shared format to avoid literal duplication
+
 func TestCounter(t *testing.T) {
 	p1 := &Point{
 		Name:  "my_counter",
@@ -37,7 +39,8 @@ func TestCounter(t *testing.T) {
 
 	wanted := `Desc{fqName: "rsyslog_my_counter", help: "", constLabels: {}, variableLabels: {}}`
 	if want, got := wanted, p1.PromDescription().String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		// use shared format constant
+		t.Errorf(wantGotFmt, want, got)
 	}
 }
 
@@ -58,7 +61,7 @@ func TestGauge(t *testing.T) {
 
 	wanted := `Desc{fqName: "rsyslog_my_gauge", help: "", constLabels: {}, variableLabels: {}}`
 	if want, got := wanted, p1.PromDescription().String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(wantGotFmt, want, got)
 	}
 
 }
@@ -73,21 +76,21 @@ func TestPromLabelValueAndKey(t *testing.T) {
 	}
 
 	if want, got := "v1", p.PromLabelValue(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(wantGotFmt, want, got)
 	}
 
 	if want, got := "lbl", p.PromLabelName(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(wantGotFmt, want, got)
 	}
 
 	if want, got := "foo.v1", p.Key(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(wantGotFmt, want, got)
 	}
 
 	// when LabelValue is empty, Key should be just the name
 	p.LabelValue = ""
 	if want, got := "foo", p.Key(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf(wantGotFmt, want, got)
 	}
 }
 
