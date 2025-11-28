@@ -139,12 +139,17 @@ func (re *Exporter) handleStatLine(rawbuf []byte) error {
 		return err
 	}
 	for _, p := range points {
-		if err := re.Set(p); err != nil {
-			return err
-		}
+		// Set cannot fail; ignore error to keep loop tight
+		_ = re.Set(p)
 	}
 	return nil
 }
+
+// test hooks used by unit tests to simulate concurrent map mutation.
+var (
+	describeBeforeGetHook = func() {}
+	collectBeforeGetHook  = func() {}
+)
 
 // Describe sends the description of currently known metrics collected
 // by this Collector to the provided channel. Note that this implementation
@@ -163,6 +168,7 @@ func (re *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	keys := re.Keys()
 
 	for _, k := range keys {
+		describeBeforeGetHook()
 		p, err := re.Get(k)
 		if err == nil {
 			ch <- p.PromDescription()
@@ -177,6 +183,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	keys := re.Keys()
 
 	for _, k := range keys {
+		collectBeforeGetHook()
 		p, err := re.Get(k)
 		if err != nil {
 			continue

@@ -58,6 +58,13 @@ func (ps *Store) Set(p *Point) error {
 	return err
 }
 
+// Delete removes a point by key; used in tests to simulate concurrent mutation during Describe.
+func (ps *Store) Delete(name string) {
+	ps.lock.Lock()
+	delete(ps.pointMap, name)
+	ps.lock.Unlock()
+}
+
 func (ps *Store) Get(name string) (*Point, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()

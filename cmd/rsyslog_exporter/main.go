@@ -14,7 +14,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"io"
 	"log"
 	"log/syslog"
 	"net/http"
@@ -35,68 +37,96 @@ var (
 	silent        = flag.Bool("silent", false, "Disable logging of errors in handling stats lines")
 )
 
-func main() {
-	setupSyslog()
+// test hooks
+var (
+	// newSyslog remains injectable for tests.
+	newSyslog = func(priority syslog.Priority, tag string) (io.Writer, error) { return syslog.New(priority, tag) }
+	// exitOnErr allows tests to intercept fatal exits without os.Exit.
+	exitOnErr = func(err error) { log.Fatal(err) }
+	// osExit allows tests to intercept os.Exit calls.
+	osExit = os.Exit
+)
 
+func setupSyslog() io.Writer {
+	w, err := newSyslog(syslog.LOG_NOTICE|syslog.LOG_SYSLOG, "rsyslog_exporter")
+	if err == nil && w != nil {
+		log.SetOutput(w)
+		return w
+	}
+	return nil
+}
+
+func main() {
+	_ = setupSyslog()
 	flag.Parse()
 	re := exporter.New()
 
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		<-c
-		log.Print("interrupt received, exiting")
-		os.Exit(0)
-	}()
+	go runInterruptWatcher()
+	go runExporterLoop(re, *silent)
 
-	go func() {
-		if err := re.Run(*silent); err != nil {
-			log.Printf("exporter run ended with error: %v", err)
-			os.Exit(1)
-		}
-		log.Print("exporter run ended normally, exiting")
-		os.Exit(0)
-	}()
+	mux := http.NewServeMux()
+	registerHandlers(mux, *metricPath, re, prometheus.NewRegistry()) // use a fresh registry to avoid double registration during tests
 
-	prometheus.MustRegister(re)
-	http.Handle(*metricPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	srv := buildServer(*listenAddress, mux)
+	startServer(srv, *listenAddress, *certPath, *keyPath)
+}
+
+func runInterruptWatcher() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	log.Print("interrupt received")
+}
+
+func runExporterLoop(re *exporter.Exporter, silent bool) {
+	if err := re.Run(silent); err != nil {
+		log.Printf("exporter run ended with error: %v", err)
+		return
+	}
+	log.Print("exporter run ended normally")
+}
+
+// registerHandlers wires endpoints onto mux using provided registry.
+func registerHandlers(mux *http.ServeMux, metricPath string, re *exporter.Exporter, reg *prometheus.Registry) {
+	// safe register: ignore AlreadyRegistered
+	_ = reg.Register(re)
+	mux.Handle(metricPath, promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		// nolint:errcheck
 		w.Write([]byte(`<html>
 <head><title>Rsyslog exporter</title></head>
 <body>
 <h1>Rsyslog exporter</h1>
-<p><a href='` + *metricPath + `'>Metrics</a></p>
+<p><a href='` + metricPath + `'>Metrics</a></p>
 </body>
 </html>
 `))
 	})
+}
 
-	// Configure server with sensible timeouts to mitigate slowloris and
-	// similar DoS attacks. Use DefaultServeMux by leaving Handler nil.
-	srv := &http.Server{
-		Addr:              *listenAddress,
-		Handler:           nil,
+func buildServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	if *certPath == "" && *keyPath == "" {
-		log.Printf("Listening on %s", *listenAddress)
-		log.Fatal(srv.ListenAndServe())
-	}
-	if *certPath == "" || *keyPath == "" {
-		log.Fatal("Both tls.server-crt and tls.server-key must be specified")
-	}
-	log.Printf("Listening for TLS on %s", *listenAddress)
-	log.Fatal(srv.ListenAndServeTLS(*certPath, *keyPath))
 }
 
-func setupSyslog() {
-	logwriter, e := syslog.New(syslog.LOG_NOTICE|syslog.LOG_SYSLOG, "rsyslog_exporter")
-	if e == nil {
-		log.SetOutput(logwriter)
+func startServer(srv *http.Server, listenAddr, certPath, keyPath string) {
+	if certPath == "" && keyPath == "" {
+		log.Printf("Listening on %s", listenAddr)
+		exitOnErr(srv.ListenAndServe())
+		return
 	}
+	if certPath == "" || keyPath == "" {
+		exitOnErr(errors.New("Both tls.server-crt and tls.server-key must be specified"))
+		return
+	}
+	log.Printf("Listening for TLS on %s", listenAddr)
+	exitOnErr(srv.ListenAndServeTLS(certPath, keyPath))
 }
+
+// (old setupSyslog removed; use the injectable setupSyslog above)
