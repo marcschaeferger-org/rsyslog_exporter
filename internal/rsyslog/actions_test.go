@@ -35,7 +35,7 @@ func TestNewActionFromJSON(t *testing.T) {
 		t.Fatalf("expected parsing action not to fail, got: %v", err)
 	}
 
-	if want, got := "test_action", pstat.Name; want != got {
+	if want, got := th.TestAction, pstat.Name; want != got {
 		t.Errorf(th.WantStringFmt, want, got)
 	}
 
@@ -75,11 +75,11 @@ func TestActionToPoints(t *testing.T) {
 		labelValue string
 	}
 	expected := []expectation{
-		{0, "action_processed", 100000, model.Counter, "test_action"},
-		{1, "action_failed", 2, model.Counter, "test_action"},
-		{2, "action_suspended", 1, model.Counter, "test_action"},
-		{3, "action_suspended_duration", 1000, model.Counter, "test_action"},
-		{4, "action_resumed", 1, model.Counter, "test_action"},
+		{0, "action_processed", 100000, model.Counter, th.TestAction},
+		{1, "action_failed", 2, model.Counter, th.TestAction},
+		{2, "action_suspended", 1, model.Counter, th.TestAction},
+		{3, "action_suspended_duration", 1000, model.Counter, th.TestAction},
+		{4, "action_resumed", 1, model.Counter, th.TestAction},
 	}
 
 	for _, exp := range expected {
@@ -87,17 +87,6 @@ func TestActionToPoints(t *testing.T) {
 			t.Fatalf("expected point index %d to exist", exp.idx)
 		}
 		pt := points[exp.idx]
-		if pt.Name != exp.name {
-			t.Errorf("idx %d: want name %s got %s", exp.idx, exp.name, pt.Name)
-		}
-		if pt.Value != exp.value {
-			t.Errorf("%s: want value %d got %d", exp.name, exp.value, pt.Value)
-		}
-		if pt.Type != exp.metricType {
-			t.Errorf("%s: want type %d got %d", exp.name, exp.metricType, pt.Type)
-		}
-		if pt.LabelValue != exp.labelValue {
-			t.Errorf("%s: want label %s got %s", exp.name, exp.labelValue, pt.LabelValue)
-		}
+		th.AssertPointFields(t, exp.idx, exp.name, int(exp.metricType), exp.value, exp.labelValue, pt.Name, int(pt.Type), pt.Value, pt.LabelValue)
 	}
 }

@@ -82,27 +82,27 @@ func TestHandleLineWithAction(t *testing.T) {
 		{
 			Name:       "action_processed",
 			Val:        100000,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_failed",
 			Val:        2,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_suspended",
 			Val:        1,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_suspended_duration",
 			Val:        1000,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_resumed",
 			Val:        1,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 	}
 
@@ -168,11 +168,11 @@ func TestHandleLineWithInput(t *testing.T) {
 		{
 			Name:       "input_submitted",
 			Val:        1000,
-			LabelValue: "test_input",
+			LabelValue: th.TestInput,
 		},
 	}
 
-	inputLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"test_input", "origin":"imuxsock", "submitted":1000}`)
+	inputLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.TestInput + `", "origin":"imuxsock", "submitted":1000}`)
 	testHelper(t, inputLog, tests)
 }
 
