@@ -476,7 +476,9 @@ func TestHandleStatLineDecodeError(t *testing.T) {
 func TestDescribeErrorBranch(t *testing.T) {
 	re := New()
 	p := &model.Point{Name: "x", Type: model.Gauge, Value: 1}
-	_ = re.Set(p)
+	if err := re.Set(p); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
 	// Arrange hook to delete the point before Get to trigger error branch
 	orig := describeBeforeGetHook
 	defer func() { describeBeforeGetHook = orig }()
@@ -493,9 +495,13 @@ func TestDescribeErrorBranch(t *testing.T) {
 func TestCollectCoversLabelAndNoLabel(t *testing.T) {
 	re := New()
 	// no-label point
-	_ = re.Set(&model.Point{Name: "a", Type: model.Gauge, Value: 1})
+	if err := re.Set(&model.Point{Name: "a", Type: model.Gauge, Value: 1}); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
 	// with label
-	_ = re.Set(&model.Point{Name: "b", Type: model.Counter, Value: 2, LabelName: "x", LabelValue: "y"})
+	if err := re.Set(&model.Point{Name: "b", Type: model.Counter, Value: 2, LabelName: "x", LabelValue: "y"}); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
 	ch := make(chan prometheus.Metric, 10)
 	re.Collect(ch)
 	if len(ch) < 2 {
@@ -507,7 +513,9 @@ func TestCollectErrorBranch(t *testing.T) {
 	t.Helper()
 	re := New()
 	p := &model.Point{Name: "gone", Type: model.Gauge, Value: 1}
-	_ = re.Set(p)
+	if err := re.Set(p); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
 	orig := collectBeforeGetHook
 	defer func() { collectBeforeGetHook = orig }()
 	collectBeforeGetHook = func() { re.Delete(p.Key()) }
@@ -516,7 +524,10 @@ func TestCollectErrorBranch(t *testing.T) {
 	// if we reached here without panic, the error branch was exercised via continue
 }
 
-const statsLineErrMsg = "expected stats_line_errors >= 1, got %d"
+const (
+	statsLineErrMsg = "expected stats_line_errors >= 1, got %d"
+	setFailedFmt   = "Set failed: %v"
+)
 
 // --- merged from runloop_test.go ---
 
