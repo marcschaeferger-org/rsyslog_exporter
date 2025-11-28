@@ -42,46 +42,66 @@ func StatType(buf []byte) Type {
 		return TypeAction
 	}
 
-	// Try to parse the JSON object and check the "name" field when possible.
-	// This handles both `"name":"omkafka"` and `"name": "omkafka"` forms.
-	var obj map[string]any
-	if err := json.Unmarshal(buf, &obj); err == nil {
-		if v, ok := obj["name"]; ok {
-			if s, ok := v.(string); ok {
-				switch s {
-				case "omkafka":
-					// omkafka lines have a submitted field and must be classified before TypeInput
-					return TypeOmkafka
-				case "omfwd":
-					return TypeForward
-				}
-				if strings.HasPrefix(s, "mmkubernetes") {
-					return TypeKubernetes
-				}
-			}
-		}
+	if t := detectByName(buf); t != TypeUnknown {
+		return t
 	}
+	return detectBySubstring(line)
+}
 
-	// Fallback to older substring checks.
-	if strings.Contains(line, "\"name\": \"omkafka\"") {
-		// Not checking for just omkafka here as multiple actions may/will contain that word.
-		// omkafka lines have a submitted field, so they need to be filtered before TypeInput
+// detectByName parses JSON and classifies based on the "name" field.
+// Returns TypeUnknown if parsing fails or no matching name is found.
+func detectByName(buf []byte) Type {
+	var obj map[string]any
+	if err := json.Unmarshal(buf, &obj); err != nil {
+		return TypeUnknown
+	}
+	v, ok := obj["name"]
+	if !ok {
+		return TypeUnknown
+	}
+	s, ok := v.(string)
+	if !ok {
+		return TypeUnknown
+	}
+	if strings.HasPrefix(s, "mmkubernetes") {
+		return TypeKubernetes
+	}
+	switch s {
+	case "omkafka":
 		return TypeOmkafka
-	} else if strings.Contains(line, "submitted") {
-		return TypeInput
-	} else if strings.Contains(line, "called.recvmmsg") {
-		return TypeInputIMDUP
-	} else if strings.Contains(line, "enqueued") {
-		return TypeQueue
-	} else if strings.Contains(line, "utime") {
-		return TypeResource
-	} else if strings.Contains(line, "dynstats") {
-		return TypeDynStat
-	} else if strings.Contains(line, "dynafile cache") {
-		return TypeDynafileCache
-	} else if strings.Contains(line, "omfwd") {
+	case "omfwd":
 		return TypeForward
-	} else if strings.Contains(line, "mmkubernetes") {
+	}
+	return TypeUnknown
+}
+
+// detectBySubstring falls back to substring heuristics when JSON parsing isn't available.
+func detectBySubstring(line string) Type {
+	if strings.Contains(line, "\"name\": \"omkafka\"") {
+		return TypeOmkafka
+	}
+	if strings.Contains(line, "submitted") {
+		return TypeInput
+	}
+	if strings.Contains(line, "called.recvmmsg") {
+		return TypeInputIMDUP
+	}
+	if strings.Contains(line, "enqueued") {
+		return TypeQueue
+	}
+	if strings.Contains(line, "utime") {
+		return TypeResource
+	}
+	if strings.Contains(line, "dynstats") {
+		return TypeDynStat
+	}
+	if strings.Contains(line, "dynafile cache") {
+		return TypeDynafileCache
+	}
+	if strings.Contains(line, "omfwd") {
+		return TypeForward
+	}
+	if strings.Contains(line, "mmkubernetes") {
 		return TypeKubernetes
 	}
 	return TypeUnknown

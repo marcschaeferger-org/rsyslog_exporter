@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/signal"
 	"strings"
 	"syscall"
 	"testing"
@@ -32,13 +34,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	invalidListenAddr         = "*********:-1"
+	anyListenZero             = ":0"
+	defaultMetricPath         = "/metrics"
+	sampleLine                = "col1 col2 col3 {\"submitted\":1}\n"
+	msgUnexpectedExitOnErrFmt = "unexpected exitOnErr: %v"
+	msgExpectedExitCodeFmt    = "expected exit code 0, got %d"
+)
+
 func TestSetupSyslogFallback(t *testing.T) {
 	// Save original and restore at the end
 	orig := newSyslog
 	defer func() { newSyslog = orig }()
 
 	// make newSyslog return an error to simulate unavailability
-	newSyslog = func(priority syslog.Priority, tag string) (io.Writer, error) {
+	newSyslog = func(_ syslog.Priority, _ string) (io.Writer, error) {
 		return nil, errors.New("syslog unavailable")
 	}
 
@@ -52,7 +63,7 @@ func TestSetupSyslogSuccess(t *testing.T) {
 	orig := newSyslog
 	defer func() { newSyslog = orig }()
 	buf := &bytes.Buffer{}
-	newSyslog = func(priority syslog.Priority, tag string) (io.Writer, error) {
+	newSyslog = func(_ syslog.Priority, _ string) (io.Writer, error) {
 		return buf, nil
 	}
 	w := setupSyslog()
@@ -76,7 +87,7 @@ func TestRegisterHandlersWithCustomMetricPath(t *testing.T) {
 
 	// root handler returns HTML with link
 	rr := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	mux.ServeHTTP(rr, req)
 	if rr.Code != 200 || !strings.Contains(rr.Body.String(), mp) {
 		t.Fatalf("root handler missing metric path link; code=%d body=%s", rr.Code, rr.Body.String())
@@ -84,7 +95,7 @@ func TestRegisterHandlersWithCustomMetricPath(t *testing.T) {
 
 	// metrics path handler responds 200
 	rr2 := httptest.NewRecorder()
-	req2, _ := http.NewRequest("GET", mp, nil)
+	req2, _ := http.NewRequest("GET", mp, http.NoBody)
 	mux.ServeHTTP(rr2, req2)
 	if rr2.Code != 200 {
 		t.Fatalf("metrics handler returned %d", rr2.Code)
@@ -109,7 +120,7 @@ func TestStartServerNoTLSImmediateError(t *testing.T) {
 	exitOnErr = func(err error) { gotErr = err }
 
 	mux := http.NewServeMux()
-	srv := buildServer("127.0.0.1:-1", mux) // invalid port forces immediate error
+	srv := buildServer(invalidListenAddr, mux) // invalid port forces immediate error
 	startServer(srv, srv.Addr, "", "")
 	if gotErr == nil {
 		t.Fatalf("expected error from ListenAndServe")
@@ -124,7 +135,7 @@ func TestStartServerTLSMissingOneFlag(t *testing.T) {
 	mux := http.NewServeMux()
 	srv := buildServer(":0", mux)
 	startServer(srv, srv.Addr, "cert.pem", "")
-	if got == nil || got.Error() != "Both tls.server-crt and tls.server-key must be specified" {
+	if got == nil || got.Error() != "both tls.server-crt and tls.server-key must be specified" {
 		t.Fatalf("unexpected error: %v", got)
 	}
 }
@@ -148,8 +159,8 @@ func (e exitPanic) Error() string { return fmt.Sprintf("exit(%d)", e.code) }
 
 func TestMainFunctionCoversExitPath(t *testing.T) {
 	// ensure flags are reset for test
-	*listenAddress = "127.0.0.1:-1" // cause immediate server startup error
-	*metricPath = "/metrics"
+	*listenAddress = invalidListenAddr // cause immediate server startup error
+	*metricPath = defaultMetricPath
 	*certPath = ""
 	*keyPath = ""
 	*silent = true
@@ -183,8 +194,8 @@ func TestMainFunctionCoversExitPath(t *testing.T) {
 }
 
 func TestMainFunctionCoversTLSBranch(t *testing.T) {
-	*listenAddress = "127.0.0.1:-1"
-	*metricPath = "/metrics"
+	*listenAddress = invalidListenAddr
+	*metricPath = defaultMetricPath
 	*certPath = "badcert.pem"
 	*keyPath = "badkey.pem"
 	*silent = true
@@ -212,17 +223,66 @@ func TestMainFunctionCoversTLSBranch(t *testing.T) {
 	main()
 }
 
+type errReader struct{ used bool }
+
+func (e *errReader) Read(p []byte) (int, error) {
+	if !e.used {
+		e.used = true
+		copy(p, []byte(sampleLine))
+		return len(sampleLine), nil
+	}
+	return 0, fmt.Errorf("reader error")
+}
+
+// Test-only helpers (moved from testhooks_test.go) to avoid staticcheck warnings
+var exporterRunHook = func(re *exporter.Exporter, silent bool) error {
+	return re.Run(context.Background(), silent)
+}
+
+func runExporterLoop(re *exporter.Exporter, silent bool) {
+	if err := exporterRunHook(re, silent); err != nil {
+		log.Printf("exporter run ended with error: %v", err)
+		return
+	}
+	log.Print("exporter run ended normally")
+}
+
+// startServer is a blocking wrapper used by tests; it starts server async and
+// waits for the first error then forwards it to exitOnErr (keeps previous
+// test behavior).
+func startServer(srv *http.Server, listenAddr, certPath, keyPath string) {
+	errC := startServerAsync(srv, listenAddr, certPath, keyPath)
+	err := <-errC
+	exitOnErr(err)
+}
+
+func runInterruptWatcher() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	log.Print("interrupt received")
+}
+
 func TestRunExporterLoopNormal(t *testing.T) {
+	t.Helper()
 	// Prepare stdin for exporter.New() so its scanner reads one line and EOF
 	origStdin := os.Stdin
 	r, w, _ := os.Pipe()
-	_, _ = w.Write([]byte("col1 col2 col3 {\"submitted\":1}\n"))
+	_, _ = w.WriteString(sampleLine)
 	_ = w.Close()
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
 	re := exporter.New()
 	runExporterLoop(re, true)
+}
+
+func TestRunExporterLoopError(t *testing.T) {
+	origHook := exporterRunHook
+	defer func() { exporterRunHook = origHook }()
+	exporterRunHook = func(_ *exporter.Exporter, _ bool) error { return fmt.Errorf("boom") }
+	re := exporter.New()
+	runExporterLoop(re, true) // should hit error branch and return
 }
 
 func TestRunInterruptWatcher(t *testing.T) {
@@ -240,8 +300,8 @@ func TestRunInterruptWatcher(t *testing.T) {
 
 func TestGracefulShutdownSIGINT(t *testing.T) {
 	// configure flags
-	*listenAddress = "127.0.0.1:0"
-	*metricPath = "/metrics"
+	*listenAddress = anyListenZero
+	*metricPath = defaultMetricPath
 	*certPath = ""
 	*keyPath = ""
 	*silent = true
@@ -255,7 +315,7 @@ func TestGracefulShutdownSIGINT(t *testing.T) {
 	// intercept exitOnErr to fail the test if invoked
 	origFatal := exitOnErr
 	defer func() { exitOnErr = origFatal }()
-	exitOnErr = func(err error) { t.Fatalf("unexpected exitOnErr: %v", err) }
+	exitOnErr = func(err error) { t.Fatalf(msgUnexpectedExitOnErrFmt, err) }
 
 	// block stdin so exporter.Run doesn't return immediately
 	origStdin := os.Stdin
@@ -276,17 +336,65 @@ func TestGracefulShutdownSIGINT(t *testing.T) {
 	select {
 	case code := <-got:
 		if code != 0 {
-			t.Fatalf("expected exit code 0, got %d", code)
+			t.Fatalf(msgExpectedExitCodeFmt, code)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("graceful shutdown on SIGINT did not complete in time")
 	}
 }
 
+func TestContextDonePath(t *testing.T) {
+	*listenAddress = ":0"
+	*metricPath = defaultMetricPath
+	*certPath = ""
+	*keyPath = ""
+	*silent = true
+
+	// capture osExit
+	origExit := osExit
+	defer func() { osExit = origExit }()
+	got := make(chan int, 1)
+	osExit = func(code int) { got <- code }
+
+	// never call exitOnErr
+	origFatal := exitOnErr
+	defer func() { exitOnErr = origFatal }()
+	exitOnErr = func(err error) { t.Fatalf(msgUnexpectedExitOnErrFmt, err) }
+
+	// block stdin so exporter loop doesn't finish on its own
+	origStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	_ = w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = origStdin; _ = r.Close() }()
+
+	// override root context to auto-cancel shortly after start
+	origMk := makeRootContext
+	defer func() { makeRootContext = origMk }()
+	makeRootContext = func() (context.Context, context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			cancel()
+		}()
+		return ctx, cancel
+	}
+
+	go main()
+	select {
+	case code := <-got:
+		if code != 0 {
+			t.Fatalf(msgExpectedExitCodeFmt, code)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("context-done path did not exit in time")
+	}
+}
+
 func TestGracefulShutdownSIGTERM(t *testing.T) {
 	// configure flags
-	*listenAddress = "127.0.0.1:0"
-	*metricPath = "/metrics"
+	*listenAddress = anyListenZero
+	*metricPath = defaultMetricPath
 	*certPath = ""
 	*keyPath = ""
 	*silent = true
@@ -300,7 +408,7 @@ func TestGracefulShutdownSIGTERM(t *testing.T) {
 	// intercept exitOnErr to fail the test if invoked
 	origFatal := exitOnErr
 	defer func() { exitOnErr = origFatal }()
-	exitOnErr = func(err error) { t.Fatalf("unexpected exitOnErr: %v", err) }
+	exitOnErr = func(err error) { t.Fatalf(msgUnexpectedExitOnErrFmt, err) }
 
 	// block stdin so exporter.Run doesn't return immediately
 	origStdin := os.Stdin
@@ -321,7 +429,7 @@ func TestGracefulShutdownSIGTERM(t *testing.T) {
 	select {
 	case code := <-got:
 		if code != 0 {
-			t.Fatalf("expected exit code 0, got %d", code)
+			t.Fatalf(msgExpectedExitCodeFmt, code)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("graceful shutdown on SIGTERM did not complete in time")

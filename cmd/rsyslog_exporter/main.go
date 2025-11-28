@@ -28,6 +28,7 @@ import (
 
 	exporter "github.com/prometheus-community/rsyslog_exporter/internal/exporter"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -43,10 +44,12 @@ var (
 var (
 	// newSyslog remains injectable for tests.
 	newSyslog = func(priority syslog.Priority, tag string) (io.Writer, error) { return syslog.New(priority, tag) }
-	// exitOnErr allows tests to intercept fatal exits without os.Exit.
-	exitOnErr = func(err error) { log.Fatal(err) }
+	// exitOnErr logs and exits with code 1 by default; tests can override.
+	exitOnErr = func(err error) { log.Printf("fatal: %v", err); osExit(1) }
 	// osExit allows tests to intercept os.Exit calls.
 	osExit = os.Exit
+	// makeRootContext allows tests to control the root context used by main.
+	makeRootContext = func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) }
 )
 
 func setupSyslog() io.Writer {
@@ -65,7 +68,7 @@ func main() {
 
 	// root context for the application; cancel on shutdown to allow
 	// future components to observe cancellation.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := makeRootContext()
 	defer cancel()
 
 	// start exporter loop (reads stdin until EOF). Pass root context so
@@ -83,8 +86,8 @@ func main() {
 	// but register the standard collectors so runtime/process metrics
 	// are exposed in production.
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(prometheus.NewGoCollector())
-	reg.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	reg.MustRegister(collectors.NewGoCollector())
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registerHandlers(mux, *metricPath, re, reg)
 
 	srv := buildServer(*listenAddress, mux)
@@ -130,14 +133,6 @@ func main() {
 	}
 }
 
-func runExporterLoop(re *exporter.Exporter, silent bool) {
-	if err := re.Run(context.Background(), silent); err != nil {
-		log.Printf("exporter run ended with error: %v", err)
-		return
-	}
-	log.Print("exporter run ended normally")
-}
-
 // registerHandlers wires endpoints onto mux using provided registry.
 func registerHandlers(mux *http.ServeMux, metricPath string, re *exporter.Exporter, reg *prometheus.Registry) {
 	// safe register: ignore AlreadyRegistered
@@ -177,7 +172,7 @@ func startServerAsync(srv *http.Server, listenAddr, certPath, keyPath string) <-
 			return
 		}
 		if certPath == "" || keyPath == "" {
-			errC <- errors.New("Both tls.server-crt and tls.server-key must be specified")
+			errC <- errors.New("both tls.server-crt and tls.server-key must be specified")
 			return
 		}
 		log.Printf("Listening for TLS on %s", listenAddr)
@@ -185,22 +180,6 @@ func startServerAsync(srv *http.Server, listenAddr, certPath, keyPath string) <-
 	}()
 
 	return errC
-}
-
-// startServer is the legacy, blocking variant used by unit tests. It starts
-// the server asynchronously then blocks waiting for the first error and
-// forwards it to the exit hook (maintains previous behavior used by tests).
-func startServer(srv *http.Server, listenAddr, certPath, keyPath string) {
-	errC := startServerAsync(srv, listenAddr, certPath, keyPath)
-	err := <-errC
-	exitOnErr(err)
-}
-
-func runInterruptWatcher() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-	log.Print("interrupt received")
 }
 
 // (old setupSyslog removed; use the injectable setupSyslog above)

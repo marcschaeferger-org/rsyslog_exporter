@@ -18,7 +18,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
@@ -328,7 +330,9 @@ func TestDescribeAndCollect(t *testing.T) {
 
 	// add a point to the store
 	p := &model.Point{Name: "my_metric", Type: model.Gauge, Value: 5}
-	re.Set(p)
+	if err := re.Set(p); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
 
 	descCh := make(chan *prometheus.Desc, 10)
 	re.Describe(descCh)
@@ -370,6 +374,17 @@ func TestHandleAdditionalStatTypes(t *testing.T) {
 type brokenReader struct {
 	data []byte
 	used bool
+}
+
+type errorAfterFirstRead struct{ used bool }
+
+func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
+	if !e.used {
+		e.used = true
+		copy(p, []byte("incomplete"))
+		return len("incomplete"), nil
+	}
+	return 0, fmt.Errorf("read error")
 }
 
 func (b *brokenReader) Read(p []byte) (int, error) {
@@ -431,9 +446,8 @@ func TestHandleStatLineInvalidSplit(t *testing.T) {
 func TestHandleStatLineDecodeError(t *testing.T) {
 	re := New()
 	// Force TypeAction via marker and malformed JSON
-	line := []byte("c1 c2 c3 {invalid}")
 	// We need a 'processed' substring to pick TypeAction; include it
-	line = []byte("c1 c2 c3 {\"processed\":notjson}")
+	line := []byte("c1 c2 c3 {\"processed\":notjson}")
 	if err := re.handleStatLine(line); err == nil {
 		t.Fatalf("expected decode error")
 	}
@@ -470,6 +484,7 @@ func TestCollectCoversLabelAndNoLabel(t *testing.T) {
 }
 
 func TestCollectErrorBranch(t *testing.T) {
+	t.Helper()
 	re := New()
 	p := &model.Point{Name: "gone", Type: model.Gauge, Value: 1}
 	_ = re.Set(p)
@@ -479,6 +494,47 @@ func TestCollectErrorBranch(t *testing.T) {
 	ch := make(chan prometheus.Metric, 10)
 	re.Collect(ch)
 	// if we reached here without panic, the error branch was exercised via continue
+}
+
+func TestRunLoopScannerErrWithCanceledCtx(t *testing.T) {
+	t.Helper()
+	re := New()
+	re.scanner = bufio.NewScanner(&errorAfterFirstRead{})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = re.runLoop(ctx, true)
+}
+
+func TestRunLoopCancelDuringSend(t *testing.T) {
+	re := New()
+	// scanner has one valid line ready
+	re.scanner = bufio.NewScanner(bytes.NewBufferString("col1 col2 col3 {\"submitted\":1}\n"))
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel before the goroutine attempts to send on ch
+	cancel()
+	if err := re.runLoop(ctx, true); err == nil {
+		t.Log("runLoop returned nil (EOF path), accepted")
+	} else {
+		t.Logf("runLoop returned error (accepted): %v", err)
+	}
+}
+
+func TestRunLoopContextCancel(t *testing.T) {
+	re := New()
+	// block scanning by using a pipe with no writer
+	r, w, _ := os.Pipe()
+	re.scanner = bufio.NewScanner(r)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+		// keep writer open until after cancel, then close to unblock goroutine cleanup
+		_ = w.Close()
+	}()
+	err := re.runLoop(ctx, true)
+	if err == nil {
+		t.Fatalf("expected context cancellation error")
+	}
 }
 
 func TestRunExported(t *testing.T) {

@@ -22,7 +22,7 @@ type fakeT struct {
 	errs []string
 }
 
-func (f *fakeT) Helper() {}
+func (*fakeT) Helper() {}
 func (f *fakeT) Errorf(format string, args ...interface{}) {
 	f.errs = append(f.errs, fmt.Sprintf(format, args...))
 }
