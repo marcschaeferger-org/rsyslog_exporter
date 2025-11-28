@@ -41,7 +41,8 @@ func StatType(buf []byte) Type {
 	if strings.Contains(line, "processed") {
 		return TypeAction
 	}
-
+	// Use short variable declaration inside the condition to avoid calling
+	// detectByName twice (which would re-unmarshal JSON and waste CPU).
 	if t := detectByName(buf); t != TypeUnknown {
 		return t
 	}
@@ -53,6 +54,8 @@ func StatType(buf []byte) Type {
 func detectByName(buf []byte) Type {
 	var obj map[string]any
 	if err := json.Unmarshal(buf, &obj); err != nil {
+		// Unmarshal failed; classification falls back to substring heuristics.
+		// Returning TypeUnknown here keeps parsing cheap without logging noise.
 		return TypeUnknown
 	}
 	// Directly assert the "name" field to a string to avoid an extra
