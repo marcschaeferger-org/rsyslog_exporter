@@ -41,6 +41,9 @@ const (
 	sampleLine                = "col1 col2 col3 {\"submitted\":1}\n"
 	msgUnexpectedExitOnErrFmt = "unexpected exitOnErr: %v"
 	msgExpectedExitCodeFmt    = "expected exit code 0, got %d"
+	msgPipeFailedFmt          = "os.Pipe failed: %v"
+	msgPipeCloseFailedFmt     = "failed to close pipe writer: %v"
+	msgFindProcessFailedFmt   = "FindProcess failed: %v"
 )
 
 func TestSetupSyslogFallback(t *testing.T) {
@@ -87,7 +90,10 @@ func TestRegisterHandlersWithCustomMetricPath(t *testing.T) {
 
 	// root handler returns HTML with link
 	rr := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", http.NoBody)
+	req, err := http.NewRequest("GET", "/", http.NoBody)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
 	mux.ServeHTTP(rr, req)
 	if rr.Code != 200 || !strings.Contains(rr.Body.String(), mp) {
 		t.Fatalf("root handler missing metric path link; code=%d body=%s", rr.Code, rr.Body.String())
@@ -95,7 +101,10 @@ func TestRegisterHandlersWithCustomMetricPath(t *testing.T) {
 
 	// metrics path handler responds 200
 	rr2 := httptest.NewRecorder()
-	req2, _ := http.NewRequest("GET", mp, http.NoBody)
+	req2, err := http.NewRequest("GET", mp, http.NoBody)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
 	mux.ServeHTTP(rr2, req2)
 	if rr2.Code != 200 {
 		t.Fatalf("metrics handler returned %d", rr2.Code)
@@ -153,9 +162,7 @@ func TestStartServerTLSBothProvided(t *testing.T) {
 	}
 }
 
-type exitPanic struct{ code int }
-
-func (e exitPanic) Error() string { return fmt.Sprintf("exit(%d)", e.code) }
+// exitPanic removed: tests use channel-based interception for osExit now.
 
 func TestMainFunctionCoversExitPath(t *testing.T) {
 	// ensure flags are reset for test
@@ -165,32 +172,39 @@ func TestMainFunctionCoversExitPath(t *testing.T) {
 	*keyPath = ""
 	*silent = true
 
-	// stub exits so we can intercept instead of terminating test process
+	// intercept osExit and exitOnErr so we can observe their invocation
 	origExit := osExit
 	defer func() { osExit = origExit }()
-	osExit = func(code int) { panic(exitPanic{code}) }
+	gotExit := make(chan int, 1)
+	osExit = func(code int) { gotExit <- code }
 
 	origFatal := exitOnErr
 	defer func() { exitOnErr = origFatal }()
-	exitOnErr = func(err error) { panic(err) }
+	gotErr := make(chan error, 1)
+	exitOnErr = func(err error) { gotErr <- err }
 
 	// block stdin so re.Run doesn't return and call osExit(0)
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close() // keep reader open so scanner blocks
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil { // keep reader open so scanner blocks
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("expected panic from exit hook")
+	// run main and wait for either exitOnErr or osExit to be invoked
+	go main()
+	select {
+	case e := <-gotErr:
+		if e == nil {
+			t.Fatalf("expected error from exitOnErr, got nil")
 		}
-	}()
-
-	// run main; it should attempt to start server then panic via exitOnErr
-	// give goroutines a tiny window then let startServer hit the failing path
-	go func() { time.Sleep(10 * time.Millisecond) }()
-	main()
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("exit hook was not invoked in time")
+	}
 }
 
 func TestMainFunctionCoversTLSBranch(t *testing.T) {
@@ -202,25 +216,35 @@ func TestMainFunctionCoversTLSBranch(t *testing.T) {
 
 	origExit := osExit
 	defer func() { osExit = origExit }()
-	osExit = func(code int) { panic(exitPanic{code}) }
+	gotExit := make(chan int, 1)
+	osExit = func(code int) { gotExit <- code }
 
 	origFatal := exitOnErr
 	defer func() { exitOnErr = origFatal }()
-	exitOnErr = func(err error) { panic(err) }
+	gotErr := make(chan error, 1)
+	exitOnErr = func(err error) { gotErr <- err }
 
 	// block stdin so re.Run doesn't return and trigger logs concurrently
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("expected panic from exit hook in TLS branch")
+	go main()
+	select {
+	case e := <-gotErr:
+		if e == nil {
+			t.Fatalf("expected error from exitOnErr in TLS branch, got nil")
 		}
-	}()
-	main()
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("exit hook was not invoked in time for TLS branch")
+	}
 }
 
 // (previous errReader helper removed as unused)
@@ -258,9 +282,16 @@ func TestRunExporterLoopNormal(t *testing.T) {
 	t.Helper()
 	// Prepare stdin for exporter.New() so its scanner reads one line and EOF
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_, _ = w.WriteString(sampleLine)
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if _, err := w.WriteString(sampleLine); err != nil {
+		t.Fatalf("failed to write to pipe: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
@@ -280,8 +311,13 @@ func TestRunInterruptWatcher(t *testing.T) {
 	// Run watcher and send an interrupt
 	done := make(chan struct{})
 	go func() { runInterruptWatcher(); close(done) }()
-	p, _ := os.FindProcess(os.Getpid())
-	_ = p.Signal(os.Interrupt)
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf(msgFindProcessFailedFmt, err)
+	}
+	if err := p.Signal(os.Interrupt); err != nil {
+		t.Fatalf("failed to send interrupt: %v", err)
+	}
 	select {
 	case <-done:
 	case <-time.After(100 * time.Millisecond):
@@ -310,8 +346,13 @@ func TestGracefulShutdownSIGINT(t *testing.T) {
 
 	// block stdin so exporter.Run doesn't return immediately
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
@@ -321,8 +362,13 @@ func TestGracefulShutdownSIGINT(t *testing.T) {
 	// give main time to start server
 	time.Sleep(50 * time.Millisecond)
 
-	p, _ := os.FindProcess(os.Getpid())
-	_ = p.Signal(syscall.SIGINT)
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf(msgFindProcessFailedFmt, err)
+	}
+	if err := p.Signal(syscall.SIGINT); err != nil {
+		t.Fatalf("failed to send SIGINT: %v", err)
+	}
 
 	select {
 	case code := <-got:
@@ -354,8 +400,13 @@ func TestContextDonePath(t *testing.T) {
 
 	// block stdin so exporter loop doesn't finish on its own
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
@@ -403,8 +454,13 @@ func TestGracefulShutdownSIGTERM(t *testing.T) {
 
 	// block stdin so exporter.Run doesn't return immediately
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
@@ -414,8 +470,13 @@ func TestGracefulShutdownSIGTERM(t *testing.T) {
 	// give main time to start server
 	time.Sleep(50 * time.Millisecond)
 
-	p, _ := os.FindProcess(os.Getpid())
-	_ = p.Signal(syscall.SIGTERM)
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf(msgFindProcessFailedFmt, err)
+	}
+	if err := p.Signal(syscall.SIGTERM); err != nil {
+		t.Fatalf("failed to send SIGTERM: %v", err)
+	}
 
 	select {
 	case code := <-got:
@@ -451,8 +512,13 @@ func TestMainServerErrorPath(t *testing.T) {
 
 	// block stdin to keep exporter.Run from returning immediately
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
@@ -498,15 +564,25 @@ func TestMainShutdownError(t *testing.T) {
 
 	// block stdin
 	origStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	_ = w.Close()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf(msgPipeFailedFmt, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf(msgPipeCloseFailedFmt, err)
+	}
 	os.Stdin = r
 	defer func() { os.Stdin = origStdin; _ = r.Close() }()
 
 	go main()
 	time.Sleep(50 * time.Millisecond)
-	p, _ := os.FindProcess(os.Getpid())
-	_ = p.Signal(syscall.SIGINT)
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf(msgFindProcessFailedFmt, err)
+	}
+	if err := p.Signal(syscall.SIGINT); err != nil {
+		t.Fatalf("failed to send SIGINT: %v", err)
+	}
 
 	select {
 	case code := <-got:

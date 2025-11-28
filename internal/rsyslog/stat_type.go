@@ -55,11 +55,9 @@ func detectByName(buf []byte) Type {
 	if err := json.Unmarshal(buf, &obj); err != nil {
 		return TypeUnknown
 	}
-	v, ok := obj["name"]
-	if !ok {
-		return TypeUnknown
-	}
-	s, ok := v.(string)
+	// Directly assert the "name" field to a string to avoid an extra
+	// temporary variable for the intermediate map lookup.
+	s, ok := obj["name"].(string)
 	if !ok {
 		return TypeUnknown
 	}
