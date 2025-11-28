@@ -25,7 +25,7 @@ var (
 )
 
 func TestNewResourceFromJSON(t *testing.T) {
-	logType := GetStatType(resourceLog)
+	logType := StatType(resourceLog)
 	if logType != TypeResource {
 		t.Errorf(th.DetectedTypeFmt, TypeResource, logType)
 	}

@@ -32,8 +32,8 @@ const (
 	TypeOmkafka
 )
 
-// GetStatType detects the impstats message type from the raw JSON buffer.
-func GetStatType(buf []byte) Type {
+// StatType detects the impstats message type from the raw JSON buffer.
+func StatType(buf []byte) Type {
 	line := string(buf)
 	if strings.Contains(line, "processed") {
 		return TypeAction

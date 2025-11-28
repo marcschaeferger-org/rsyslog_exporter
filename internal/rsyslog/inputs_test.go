@@ -24,7 +24,7 @@ var (
 )
 
 func TestGetInput(t *testing.T) {
-	logType := GetStatType(inputLog)
+	logType := StatType(inputLog)
 	if logType != TypeInput {
 		t.Errorf(th.DetectedTypeFmt, TypeInput, logType)
 	}

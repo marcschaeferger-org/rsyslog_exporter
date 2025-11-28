@@ -31,7 +31,7 @@ func TestGetDynStat(t *testing.T) {
 		th.MsgPerHostOpsIgnored:    0,
 	}
 
-	if got := GetStatType(log); got != TypeDynStat {
+	if got := StatType(log); got != TypeDynStat {
 		t.Errorf(th.DetectedTypeFmt, TypeDynStat, got)
 	}
 

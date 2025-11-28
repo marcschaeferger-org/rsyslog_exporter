@@ -129,7 +129,7 @@ func (re *Exporter) handleStatLine(rawbuf []byte) error {
 		return fmt.Errorf("failed to split log line, expected 4 columns, got: %v", len(s))
 	}
 	buf := s[3]
-	pstatType := rsyslog.GetStatType(buf)
+	pstatType := rsyslog.StatType(buf)
 	dec, ok := statDecoders[pstatType]
 	if !ok {
 		return fmt.Errorf("unknown pstat type: %v", pstatType)

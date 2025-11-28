@@ -26,7 +26,7 @@ var (
 )
 
 func TestNewDynafileCacheFromJSON(t *testing.T) {
-	if got := GetStatType(dynafileCacheLog); got != TypeDynafileCache {
+	if got := StatType(dynafileCacheLog); got != TypeDynafileCache {
 		t.Errorf(th.DetectedTypeFmt, TypeDynafileCache, got)
 	}
 	pstat, err := NewDynafileCacheFromJSON(dynafileCacheLog)

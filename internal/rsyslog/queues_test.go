@@ -25,7 +25,7 @@ var (
 )
 
 func TestNewQueueFromJSON(t *testing.T) {
-	logType := GetStatType(queueStat)
+	logType := StatType(queueStat)
 	if logType != TypeQueue {
 		t.Errorf(th.DetectedTypeFmt, TypeQueue, logType)
 	}

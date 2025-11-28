@@ -27,7 +27,7 @@ var (
 )
 
 func TestNewOmkafkaFromJSON(t *testing.T) {
-	logType := GetStatType(omkafkaLog)
+	logType := StatType(omkafkaLog)
 	if logType != TypeOmkafka {
 		t.Errorf(th.DetectedTypeFmt, TypeOmkafka, logType)
 	}

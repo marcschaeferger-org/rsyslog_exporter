@@ -24,7 +24,7 @@ var (
 )
 
 func TestGetInputIMUDP(t *testing.T) {
-	if got := GetStatType(inputIMUDPLog); got != TypeInputIMDUP {
+	if got := StatType(inputIMUDPLog); got != TypeInputIMDUP {
 		t.Errorf(th.DetectedTypeFmt, TypeInputIMDUP, got)
 	}
 	pstat, err := NewInputIMUDPFromJSON(inputIMUDPLog)
