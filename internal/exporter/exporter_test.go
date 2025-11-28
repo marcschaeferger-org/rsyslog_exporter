@@ -382,7 +382,7 @@ type errorAfterFirstRead struct{ used bool }
 // Error implements error so linters don't warn about the "Error" suffix on the
 // type name. The type is primarily an io.Reader used in tests; implementing
 // Error() is harmless and makes the intent explicit.
-func (e *errorAfterFirstRead) Error() string { return "errorAfterFirstRead" }
+func (*errorAfterFirstRead) Error() string { return "errorAfterFirstRead" }
 
 func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
 	if !e.used {
