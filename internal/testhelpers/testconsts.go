@@ -21,4 +21,9 @@ const (
 	MsgPerHostNoMetric      = "msg_per_host.no_metric"
 	MsgPerHostMetricsPurged = "msg_per_host.metrics_purged"
 	MsgPerHostOpsIgnored    = "msg_per_host.ops_ignored"
+	// Common test label values
+	TestAction     = "test_action"
+	TestInput      = "test_input"
+	TestInputIMUDP = "test_input_imudp"
+	Cluster        = "cluster"
 )

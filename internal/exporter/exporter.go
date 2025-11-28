@@ -16,6 +16,7 @@ package exporter
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -129,7 +130,7 @@ func (re *Exporter) handleStatLine(rawbuf []byte) error {
 		return fmt.Errorf("failed to split log line, expected 4 columns, got: %v", len(s))
 	}
 	buf := s[3]
-	pstatType := rsyslog.GetStatType(buf)
+	pstatType := rsyslog.StatType(buf)
 	dec, ok := statDecoders[pstatType]
 	if !ok {
 		return fmt.Errorf("unknown pstat type: %v", pstatType)
@@ -139,12 +140,17 @@ func (re *Exporter) handleStatLine(rawbuf []byte) error {
 		return err
 	}
 	for _, p := range points {
-		if err := re.Set(p); err != nil {
-			return err
-		}
+		// Set cannot fail; ignore error to keep loop tight
+		_ = re.Set(p)
 	}
 	return nil
 }
+
+// test hooks used by unit tests to simulate concurrent map mutation.
+var (
+	describeBeforeGetHook = func() {}
+	collectBeforeGetHook  = func() {}
+)
 
 // Describe sends the description of currently known metrics collected
 // by this Collector to the provided channel. Note that this implementation
@@ -163,6 +169,7 @@ func (re *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	keys := re.Keys()
 
 	for _, k := range keys {
+		describeBeforeGetHook()
 		p, err := re.Get(k)
 		if err == nil {
 			ch <- p.PromDescription()
@@ -177,6 +184,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	keys := re.Keys()
 
 	for _, k := range keys {
+		collectBeforeGetHook()
 		p, err := re.Get(k)
 		if err != nil {
 			continue
@@ -198,7 +206,7 @@ func (re *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (re *Exporter) runLoop(silent bool) error {
+func (re *Exporter) runLoop(ctx context.Context, silent bool) error {
 	errorPoint := &model.Point{
 		Name:        "stats_line_errors",
 		Type:        model.Counter,
@@ -206,25 +214,64 @@ func (re *Exporter) runLoop(silent bool) error {
 	}
 	// nolint:errcheck
 	re.Set(errorPoint)
-	for re.scanner.Scan() {
-		err := re.handleStatLine(re.scanner.Bytes())
-		if err != nil {
-			errorPoint.Value += 1
-			if !silent {
-				log.Printf("error handling stats line: %v, line was: %s", err, re.scanner.Bytes())
+	// scan lines in a goroutine and send them on a channel so we can
+	// select between incoming lines and context cancellation.
+	type scanResult struct {
+		line []byte
+		err  error
+	}
+	ch := make(chan scanResult)
+
+	go func() {
+		defer close(ch)
+		for re.scanner.Scan() {
+			// copy the bytes since scanner reuses internal buffer
+			b := make([]byte, len(re.scanner.Bytes()))
+			copy(b, re.scanner.Bytes())
+			// avoid blocking send if context is cancelled
+			select {
+			case ch <- scanResult{line: b}:
+			case <-ctx.Done():
+				return
+			}
+		}
+		if err := re.scanner.Err(); err != nil {
+			select {
+			case ch <- scanResult{err: err}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Print("runLoop: context canceled, returning")
+			return ctx.Err()
+		case res, ok := <-ch:
+			if !ok {
+				// channel closed = scanner EOF
+				log.Print("input ended, returning from run")
+				return nil
+			}
+			if res.err != nil {
+				log.Printf("error reading input: %v", res.err)
+				return res.err
+			}
+			err := re.handleStatLine(res.line)
+			if err != nil {
+				errorPoint.Value += 1
+				if !silent {
+					log.Printf("error handling stats line: %v, line was: %s", err, res.line)
+				}
 			}
 		}
 	}
-	if err := re.scanner.Err(); err != nil {
-		log.Printf("error reading input: %v", err)
-		return err
-	}
-	log.Print("input ended, returning from run")
-	return nil
 }
 
 // Run starts the exporter loop. Exported for use by the cmd package.
 // It returns when stdin scanning ends; callers (e.g. main) should decide whether to exit the process.
-func (re *Exporter) Run(silent bool) error {
-	return re.runLoop(silent)
+func (re *Exporter) Run(ctx context.Context, silent bool) error {
+	return re.runLoop(ctx, silent)
 }

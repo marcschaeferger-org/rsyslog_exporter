@@ -14,12 +14,50 @@
 package exporter
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/prometheus-community/rsyslog_exporter/internal/model"
 	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+// Build a fake log line as the exporter expects: 4 columns with the JSON in the 4th.
+func resourceLineJSON(name string, utime int64) []byte {
+	// Use %q to ensure proper JSON string quoting and escaping of name.
+	js := fmt.Sprintf(`{"name":%q,"utime":%d,"stime":0,"maxrss":0,"minflt":0,"majflt":0,"inblock":0,"oublock":0,"nvcsw":0,"nivcsw":0}`, name, utime)
+	// prefix three columns separated by space to mimic the format processed by handleStatLine
+	return []byte("col1 col2 col3 " + js)
+}
+
+func TestHandleStatLineResource(t *testing.T) {
+	re := New()
+	line := resourceLineJSON("myres", 42)
+	if err := re.handleStatLine(line); err != nil {
+		t.Fatalf("handleStatLine failed: %v", err)
+	}
+
+	// verify store has the expected point key (name.label)
+	key := "resource_utime.myres"
+	p, err := re.Get(key)
+	if err != nil {
+		t.Fatalf("expected point for key %s: %v", key, err)
+	}
+	if p.Name != "resource_utime" {
+		t.Fatalf("unexpected point name: %s", p.Name)
+	}
+	if p.Value != 42 {
+		t.Fatalf("unexpected value: %d", p.Value)
+	}
+	if p.Type != model.Counter {
+		t.Fatalf("unexpected type: %v", p.Type)
+	}
+}
 
 func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 	exporter := New()
@@ -82,27 +120,27 @@ func TestHandleLineWithAction(t *testing.T) {
 		{
 			Name:       "action_processed",
 			Val:        100000,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_failed",
 			Val:        2,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_suspended",
 			Val:        1,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_suspended_duration",
 			Val:        1000,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 		{
 			Name:       "action_resumed",
 			Val:        1,
-			LabelValue: "test_action",
+			LabelValue: th.TestAction,
 		},
 	}
 
@@ -168,11 +206,11 @@ func TestHandleLineWithInput(t *testing.T) {
 		{
 			Name:       "input_submitted",
 			Val:        1000,
-			LabelValue: "test_input",
+			LabelValue: th.TestInput,
 		},
 	}
 
-	inputLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"test_input", "origin":"imuxsock", "submitted":1000}`)
+	inputLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.TestInput + `", "origin":"imuxsock", "submitted":1000}`)
 	testHelper(t, inputLog, tests)
 }
 
@@ -285,5 +323,282 @@ func TestHandleUnknown(t *testing.T) {
 
 	if want, got := 0, len(exporter.Keys()); want != got {
 		t.Errorf(th.WantIntFmt, want, got)
+	}
+}
+
+func TestDescribeAndCollect(t *testing.T) {
+	re := New()
+
+	// add a point to the store
+	p := &model.Point{Name: "my_metric", Type: model.Gauge, Value: 5}
+	if err := re.Set(p); err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
+
+	descCh := make(chan *prometheus.Desc, 10)
+	re.Describe(descCh)
+	if len(descCh) == 0 {
+		t.Errorf("expected at least one descriptor from Describe")
+	}
+	for len(descCh) > 0 {
+		<-descCh
+	}
+
+	metricCh := make(chan prometheus.Metric, 10)
+	re.Collect(metricCh)
+	if len(metricCh) == 0 {
+		t.Errorf("expected at least one metric from Collect")
+	}
+	for len(metricCh) > 0 {
+		<-metricCh
+	}
+}
+
+func TestHandleAdditionalStatTypes(t *testing.T) {
+	cases := []struct{ line string }{
+		{line: `2025-01-01T00:00:00Z host rsyslogd-pstats: {"name":"omfwd","omfwd.sent":1}`},                  // forward
+		{line: `2025-01-01T00:00:00Z host rsyslogd-pstats: {"name":"mmkubernetes","mmkubernetes.dropped":2}`}, // kubernetes
+		{line: `2025-01-01T00:00:00Z host rsyslogd-pstats: {"name":"test_input","called.recvmmsg":3}`},        // input imudp
+		{line: `2025-01-01T00:00:00Z host rsyslogd-pstats: {"name":"omkafka","submitted":4}`},                 // omkafka
+	}
+	for i, c := range cases {
+		re := New()
+		// nolint:errcheck
+		re.handleStatLine([]byte(c.line))
+		if len(re.Keys()) == 0 {
+			t.Fatalf("case %d: expected at least one point for line %s", i, c.line)
+		}
+	}
+}
+
+// brokenReader returns data for the first Read call then returns an error on subsequent calls.
+type brokenReader struct {
+	data []byte
+	used bool
+}
+
+type errorAfterFirstRead struct{ used bool }
+
+func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
+	if !e.used {
+		e.used = true
+		// copy supports string directly; avoid redundant []byte conversion.
+		copy(p, "incomplete")
+		return len("incomplete"), nil
+	}
+	return 0, fmt.Errorf("read error")
+}
+
+func (b *brokenReader) Read(p []byte) (int, error) {
+	if !b.used {
+		b.used = true
+		n := copy(p, b.data)
+		return n, nil
+	}
+	return 0, fmt.Errorf("read error")
+}
+
+func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
+	re := New()
+
+	// malformed line (too few columns) should cause handleStatLine to return error
+	malformed := []byte("too few columns")
+	// well-formed line for resource with small JSON
+	good := resourceLineJSON("r1", 1)
+	// prepare combined input: malformed then good
+	buf := bytes.NewBuffer(nil)
+	buf.Write(malformed)
+	buf.WriteByte('\n')
+	buf.Write(good)
+	buf.WriteByte('\n')
+
+	// set scanner to buf
+	re.scanner = bufio.NewScanner(buf)
+
+	// run loop with silent=false so it logs error but we don't assert logs
+	if err := re.runLoop(context.Background(), false); err != nil {
+		t.Fatalf("runLoop failed: %v", err)
+	}
+
+	// expect stats_line_errors to be present and value >=1
+	p, err := re.Get("stats_line_errors")
+	if err != nil {
+		t.Fatalf("expected stats_line_errors point: %v", err)
+	}
+	if p.Value < 1 {
+		t.Fatalf(statsLineErrMsg, p.Value)
+	}
+
+	// Now test scanner.Err path using brokenReader
+	br := &brokenReader{data: []byte("col1 col2 col3 {\"name\":\"global\"}")}
+	re2 := New()
+	re2.scanner = bufio.NewScanner(br)
+	if err := re2.runLoop(context.Background(), true); err == nil {
+		t.Fatalf("expected runLoop to return scanner error")
+	}
+}
+
+func TestHandleStatLineInvalidSplit(t *testing.T) {
+	re := New()
+	if err := re.handleStatLine([]byte("one two three")); err == nil {
+		t.Fatalf("expected split error")
+	}
+}
+
+func TestHandleStatLineDecodeError(t *testing.T) {
+	re := New()
+	// Force TypeAction via marker and malformed JSON
+	// We need a 'processed' substring to pick TypeAction; include it
+	line := []byte("c1 c2 c3 {\"processed\":notjson}")
+	if err := re.handleStatLine(line); err == nil {
+		t.Fatalf("expected decode error")
+	}
+}
+
+func TestDescribeErrorBranch(t *testing.T) {
+	re := New()
+	p := &model.Point{Name: "x", Type: model.Gauge, Value: 1}
+	_ = re.Set(p)
+	// Arrange hook to delete the point before Get to trigger error branch
+	orig := describeBeforeGetHook
+	defer func() { describeBeforeGetHook = orig }()
+	describeBeforeGetHook = func() { re.Delete(p.Key()) }
+
+	ch := make(chan *prometheus.Desc, 10)
+	re.Describe(ch)
+	// We should at least have the 'scrapes' descriptor; and not panic
+	if len(ch) == 0 {
+		t.Fatalf("expected at least one descriptor")
+	}
+}
+
+func TestCollectCoversLabelAndNoLabel(t *testing.T) {
+	re := New()
+	// no-label point
+	_ = re.Set(&model.Point{Name: "a", Type: model.Gauge, Value: 1})
+	// with label
+	_ = re.Set(&model.Point{Name: "b", Type: model.Counter, Value: 2, LabelName: "x", LabelValue: "y"})
+	ch := make(chan prometheus.Metric, 10)
+	re.Collect(ch)
+	if len(ch) < 2 {
+		t.Fatalf("expected metrics for both points")
+	}
+}
+
+func TestCollectErrorBranch(t *testing.T) {
+	t.Helper()
+	re := New()
+	p := &model.Point{Name: "gone", Type: model.Gauge, Value: 1}
+	_ = re.Set(p)
+	orig := collectBeforeGetHook
+	defer func() { collectBeforeGetHook = orig }()
+	collectBeforeGetHook = func() { re.Delete(p.Key()) }
+	ch := make(chan prometheus.Metric, 10)
+	re.Collect(ch)
+	// if we reached here without panic, the error branch was exercised via continue
+}
+
+const statsLineErrMsg = "expected stats_line_errors >= 1, got %d"
+
+// --- merged from runloop_test.go ---
+
+// TestRunLoopErrorIncrementsCounterSilent exercises the branch where handleStatLine
+// returns an error and silent=true so logging is suppressed but the error counter
+// is still incremented.
+func TestRunLoopErrorIncrementsCounterSilent(t *testing.T) {
+	re := New()
+
+	// prepare input: malformed line will cause handleStatLine to return error
+	buf := bytes.NewBufferString("bad line without enough columns\n")
+	re.scanner = bufio.NewScanner(buf)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	// run loop; scanner will reach EOF and runLoop should return nil
+	if err := re.runLoop(ctx, true); err != nil {
+		t.Fatalf("unexpected error from runLoop: %v", err)
+	}
+
+	// verify the stats_line_errors counter exists and was incremented
+	p, err := re.Get("stats_line_errors")
+	if err != nil {
+		t.Fatalf("expected stats_line_errors present: %v", err)
+	}
+	if p.Value < 1 {
+		t.Fatalf(statsLineErrMsg, p.Value)
+	}
+}
+
+// TestRunLoopErrorLogsWhenNotSilent verifies that when silent=false the runLoop
+// still increments the counter and behaves similarly (log output isn't asserted).
+func TestRunLoopErrorLogsWhenNotSilent(t *testing.T) {
+	re := New()
+	buf := bytes.NewBufferString("still bad\n")
+	re.scanner = bufio.NewScanner(buf)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	if err := re.runLoop(ctx, false); err != nil {
+		t.Fatalf("unexpected error from runLoop: %v", err)
+	}
+
+	p, err := re.Get("stats_line_errors")
+	if err != nil {
+		t.Fatalf("expected stats_line_errors present: %v", err)
+	}
+	if p.Value < 1 {
+		t.Fatalf(statsLineErrMsg, p.Value)
+	}
+}
+
+func TestRunLoopScannerErrWithCanceledCtx(t *testing.T) {
+	t.Helper()
+	re := New()
+	re.scanner = bufio.NewScanner(&errorAfterFirstRead{})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = re.runLoop(ctx, true)
+}
+
+func TestRunLoopCancelDuringSend(t *testing.T) {
+	re := New()
+	// scanner has one valid line ready
+	re.scanner = bufio.NewScanner(bytes.NewBufferString("col1 col2 col3 {\"submitted\":1}\n"))
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel before the goroutine attempts to send on ch
+	cancel()
+	if err := re.runLoop(ctx, true); err == nil {
+		t.Log("runLoop returned nil (EOF path), accepted")
+	} else {
+		t.Logf("runLoop returned error (accepted): %v", err)
+	}
+}
+
+func TestRunLoopContextCancel(t *testing.T) {
+	re := New()
+	// block scanning by using a pipe with no writer
+	r, w, _ := os.Pipe()
+	re.scanner = bufio.NewScanner(r)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+		// keep writer open until after cancel, then close to unblock goroutine cleanup
+		_ = w.Close()
+	}()
+	err := re.runLoop(ctx, true)
+	if err == nil {
+		t.Fatalf("expected context cancellation error")
+	}
+}
+
+func TestRunExported(t *testing.T) {
+	re := New()
+	buf := bytes.NewBufferString("col1 col2 col3 {\"submitted\":1}\n")
+	re.scanner = bufio.NewScanner(buf)
+	if err := re.Run(context.Background(), true); err != nil {
+		t.Fatalf("Run failed: %v", err)
 	}
 }

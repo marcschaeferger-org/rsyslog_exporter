@@ -107,3 +107,32 @@ func TestPointStore(t *testing.T) {
 		t.Error("getting non existent point should raise error")
 	}
 }
+
+func TestKeysOrdering(t *testing.T) {
+	ps := NewStore()
+
+	ps.Set(&Point{Name: "b", Type: Gauge, Value: 1})
+	ps.Set(&Point{Name: "a", Type: Gauge, Value: 2})
+	ps.Set(&Point{Name: "c", Type: Gauge, Value: 3})
+
+	keys := ps.Keys()
+	if len(keys) != 3 {
+		t.Fatalf("expected 3 keys, got %d", len(keys))
+	}
+	if keys[0] != "a" || keys[1] != "b" || keys[2] != "c" {
+		t.Fatalf("keys not sorted: %v", keys)
+	}
+}
+
+func TestDeleteRemovesKey(t *testing.T) {
+	ps := NewStore()
+	p := &Point{Name: "d", Type: Gauge, Value: 4}
+	_ = ps.Set(p)
+	if _, err := ps.Get(p.Key()); err != nil {
+		t.Fatalf("expected point to exist before delete: %v", err)
+	}
+	ps.Delete(p.Key())
+	if _, err := ps.Get(p.Key()); err != ErrPointNotFound {
+		t.Fatalf("expected ErrPointNotFound after delete, got %v", err)
+	}
+}

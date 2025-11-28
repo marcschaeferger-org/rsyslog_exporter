@@ -26,14 +26,14 @@ var (
 )
 
 func TestNewDynafileCacheFromJSON(t *testing.T) {
-	if got := GetStatType(dynafileCacheLog); got != TypeDynafileCache {
+	if got := StatType(dynafileCacheLog); got != TypeDynafileCache {
 		t.Errorf(th.DetectedTypeFmt, TypeDynafileCache, got)
 	}
 	pstat, err := NewDynafileCacheFromJSON(dynafileCacheLog)
 	if err != nil {
 		t.Fatalf("parse dynafile cache stat failed: %v", err)
 	}
-	th.AssertEqString(t, "name", "cluster", pstat.Name)
+	th.AssertEqString(t, "name", th.Cluster, pstat.Name)
 	nums := []struct {
 		ctx       string
 		want, got int64
@@ -52,12 +52,12 @@ func TestNewDynafileCacheFromJSON(t *testing.T) {
 
 func TestDynafileCacheToPoints(t *testing.T) {
 	expected := []model.Point{
-		{Name: "dynafile_cache_requests", Type: model.Counter, Value: 1783254, Description: "number of requests made to obtain a dynafile", LabelName: "cache", LabelValue: "cluster"},
-		{Name: "dynafile_cache_level0", Type: model.Counter, Value: 1470906, Description: "number of requests for the current active file", LabelName: "cache", LabelValue: "cluster"},
-		{Name: "dynafile_cache_missed", Type: model.Counter, Value: 2625, Description: "number of cache misses", LabelName: "cache", LabelValue: "cluster"},
-		{Name: "dynafile_cache_evicted", Type: model.Counter, Value: 2525, Description: "number of times a file needed to be evicted from cache", LabelName: "cache", LabelValue: "cluster"},
-		{Name: "dynafile_cache_maxused", Type: model.Counter, Value: 100, Description: "maximum number of cache entries ever used", LabelName: "cache", LabelValue: "cluster"},
-		{Name: "dynafile_cache_closetimeouts", Type: model.Counter, Value: 10, Description: "number of times a file was closed due to timeout settings", LabelName: "cache", LabelValue: "cluster"},
+		{Name: "dynafile_cache_requests", Type: model.Counter, Value: 1783254, Description: "number of requests made to obtain a dynafile", LabelName: "cache", LabelValue: th.Cluster},
+		{Name: "dynafile_cache_level0", Type: model.Counter, Value: 1470906, Description: "number of requests for the current active file", LabelName: "cache", LabelValue: th.Cluster},
+		{Name: "dynafile_cache_missed", Type: model.Counter, Value: 2625, Description: "number of cache misses", LabelName: "cache", LabelValue: th.Cluster},
+		{Name: "dynafile_cache_evicted", Type: model.Counter, Value: 2525, Description: "number of times a file needed to be evicted from cache", LabelName: "cache", LabelValue: th.Cluster},
+		{Name: "dynafile_cache_maxused", Type: model.Counter, Value: 100, Description: "maximum number of cache entries ever used", LabelName: "cache", LabelValue: th.Cluster},
+		{Name: "dynafile_cache_closetimeouts", Type: model.Counter, Value: 10, Description: "number of times a file was closed due to timeout settings", LabelName: "cache", LabelValue: th.Cluster},
 	}
 	pstat, err := NewDynafileCacheFromJSON(dynafileCacheLog)
 	if err != nil {

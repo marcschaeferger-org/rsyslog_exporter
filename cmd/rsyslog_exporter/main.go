@@ -14,16 +14,21 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
+	"io"
 	"log"
 	"log/syslog"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	exporter "github.com/prometheus-community/rsyslog_exporter/internal/exporter"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -35,68 +40,151 @@ var (
 	silent        = flag.Bool("silent", false, "Disable logging of errors in handling stats lines")
 )
 
-func main() {
-	setupSyslog()
+// test hooks
+var (
+	// newSyslog remains injectable for tests.
+	newSyslog = func(priority syslog.Priority, tag string) (io.Writer, error) { return syslog.New(priority, tag) }
+	// exitOnErr logs and exits with code 1 by default; tests can override.
+	exitOnErr = func(err error) { log.Printf("fatal: %v", err); osExit(1) }
+	// osExit allows tests to intercept os.Exit calls.
+	osExit = os.Exit
+	// makeRootContext allows tests to control the root context used by main.
+	makeRootContext = func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) }
+)
 
+func setupSyslog() io.Writer {
+	w, err := newSyslog(syslog.LOG_NOTICE|syslog.LOG_SYSLOG, "rsyslog_exporter")
+	if err == nil && w != nil {
+		log.SetOutput(w)
+		return w
+	}
+	return nil
+}
+
+func main() {
+	_ = setupSyslog()
 	flag.Parse()
 	re := exporter.New()
 
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		<-c
-		log.Print("interrupt received, exiting")
-		os.Exit(0)
-	}()
+	// root context for the application; cancel on shutdown to allow
+	// future components to observe cancellation.
+	ctx, cancel := makeRootContext()
+	defer cancel()
 
+	// start exporter loop (reads stdin until EOF). Pass root context so
+	// it can be canceled on shutdown.
 	go func() {
-		if err := re.Run(*silent); err != nil {
+		if err := re.Run(ctx, *silent); err != nil {
 			log.Printf("exporter run ended with error: %v", err)
-			os.Exit(1)
+		} else {
+			log.Print("exporter run ended normally")
 		}
-		log.Print("exporter run ended normally, exiting")
-		os.Exit(0)
 	}()
 
-	prometheus.MustRegister(re)
-	http.Handle(*metricPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	mux := http.NewServeMux()
+	// use a fresh registry to avoid double registration during tests,
+	// but register the standard collectors so runtime/process metrics
+	// are exposed in production.
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	registerHandlers(mux, *metricPath, re, reg)
+
+	srv := buildServer(*listenAddress, mux)
+
+	// start the HTTP server asynchronously and get an error channel.
+	serverErrC := startServerAsync(srv, *listenAddress, *certPath, *keyPath)
+
+	// listen for SIGINT and SIGTERM and trigger graceful shutdown.
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case sig := <-sigC:
+		log.Printf("signal received: %v, shutting down", sig)
+		// give the server up to 5s to shutdown cleanly
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := shutdownServer(srv, shutdownCtx); err != nil {
+			log.Printf("error during server shutdown: %v", err)
+		} else {
+			log.Print("server shutdown complete")
+		}
+		// cancel root context so other components can stop if wired up
+		cancel()
+		// ensure the shutdown timeout context is cancelled before exiting
+		shutdownCancel()
+		osExit(0)
+	case err := <-serverErrC:
+		// server terminated on its own; if it's a real error, report it.
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			exitOnErr(err)
+		}
+	case <-ctx.Done():
+		// defensive: if root context is canceled, attempt shutdown as above
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := shutdownServer(srv, shutdownCtx); err != nil {
+			log.Printf("error during server shutdown: %v", err)
+		}
+		// ensure the shutdown timeout context is cancelled before exiting
+		shutdownCancel()
+		osExit(0)
+	}
+}
+
+// registerHandlers wires endpoints onto mux using provided registry.
+func registerHandlers(mux *http.ServeMux, metricPath string, re *exporter.Exporter, reg *prometheus.Registry) {
+	// safe register: ignore AlreadyRegistered
+	_ = reg.Register(re)
+	mux.Handle(metricPath, promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		// nolint:errcheck
 		w.Write([]byte(`<html>
 <head><title>Rsyslog exporter</title></head>
 <body>
 <h1>Rsyslog exporter</h1>
-<p><a href='` + *metricPath + `'>Metrics</a></p>
+<p><a href='` + metricPath + `'>Metrics</a></p>
 </body>
 </html>
 `))
 	})
+}
 
-	// Configure server with sensible timeouts to mitigate slowloris and
-	// similar DoS attacks. Use DefaultServeMux by leaving Handler nil.
-	srv := &http.Server{
-		Addr:              *listenAddress,
-		Handler:           nil,
+func buildServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	if *certPath == "" && *keyPath == "" {
-		log.Printf("Listening on %s", *listenAddress)
-		log.Fatal(srv.ListenAndServe())
-	}
-	if *certPath == "" || *keyPath == "" {
-		log.Fatal("Both tls.server-crt and tls.server-key must be specified")
-	}
-	log.Printf("Listening for TLS on %s", *listenAddress)
-	log.Fatal(srv.ListenAndServeTLS(*certPath, *keyPath))
 }
 
-func setupSyslog() {
-	logwriter, e := syslog.New(syslog.LOG_NOTICE|syslog.LOG_SYSLOG, "rsyslog_exporter")
-	if e == nil {
-		log.SetOutput(logwriter)
-	}
+var startServerAsync = func(srv *http.Server, listenAddr, certPath, keyPath string) <-chan error {
+	errC := make(chan error, 1)
+
+	go func() {
+		if certPath == "" && keyPath == "" {
+			log.Printf("Listening on %s", listenAddr)
+			errC <- srv.ListenAndServe()
+			return
+		}
+		if certPath == "" || keyPath == "" {
+			errC <- errors.New("both tls.server-crt and tls.server-key must be specified")
+			return
+		}
+		log.Printf("Listening for TLS on %s", listenAddr)
+		errC <- srv.ListenAndServeTLS(certPath, keyPath)
+	}()
+
+	return errC
+}
+
+// (old setupSyslog removed; use the injectable setupSyslog above)
+
+// shutdownServer is injectable for tests to simulate server shutdown behavior.
+var shutdownServer = func(srv *http.Server, ctx context.Context) error {
+	return srv.Shutdown(ctx)
 }

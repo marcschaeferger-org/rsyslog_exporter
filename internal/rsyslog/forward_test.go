@@ -26,7 +26,7 @@ var (
 )
 
 func TestNewForwardFromJSON(t *testing.T) {
-	if got := GetStatType(forwardLog); got != TypeForward {
+	if got := StatType(forwardLog); got != TypeForward {
 		t.Errorf(th.DetectedTypeFmt, TypeForward, got)
 	}
 	pstat, err := NewForwardFromJSON(forwardLog)
