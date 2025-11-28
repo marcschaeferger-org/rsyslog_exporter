@@ -13,7 +13,11 @@
 
 package model
 
-import "testing"
+import (
+	"testing"
+
+	th "github.com/prometheus-community/rsyslog_exporter/internal/testhelpers"
+)
 
 func TestPointStore(t *testing.T) {
 	ps := NewStore()
@@ -41,7 +45,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(10), got.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	err = ps.Set(s2)
@@ -55,7 +59,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(5), got.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	s3 := &Point{
@@ -75,7 +79,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(20), got.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	s4 := &Point{
@@ -95,7 +99,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(15), got.Value; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
+		t.Errorf(th.WantIntFmt, want, got)
 	}
 
 	_, err = ps.Get("no point")
