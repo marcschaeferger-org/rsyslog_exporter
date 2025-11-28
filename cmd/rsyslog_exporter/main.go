@@ -109,6 +109,8 @@ func main() {
 		}
 		// cancel root context so other components can stop if wired up
 		cancel()
+		// ensure the shutdown timeout context is cancelled before exiting
+		shutdownCancel()
 		osExit(0)
 	case err := <-serverErrC:
 		// server terminated on its own; if it's a real error, report it.
@@ -122,6 +124,8 @@ func main() {
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			log.Printf("error during server shutdown: %v", err)
 		}
+		// ensure the shutdown timeout context is cancelled before exiting
+		shutdownCancel()
 		osExit(0)
 	}
 }

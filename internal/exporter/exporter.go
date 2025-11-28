@@ -223,16 +223,25 @@ func (re *Exporter) runLoop(ctx context.Context, silent bool) error {
 	ch := make(chan scanResult)
 
 	go func() {
+		defer close(ch)
 		for re.scanner.Scan() {
 			// copy the bytes since scanner reuses internal buffer
 			b := make([]byte, len(re.scanner.Bytes()))
 			copy(b, re.scanner.Bytes())
-			ch <- scanResult{line: b}
+			// avoid blocking send if context is cancelled
+			select {
+			case ch <- scanResult{line: b}:
+			case <-ctx.Done():
+				return
+			}
 		}
 		if err := re.scanner.Err(); err != nil {
-			ch <- scanResult{err: err}
+			select {
+			case ch <- scanResult{err: err}:
+			case <-ctx.Done():
+				return
+			}
 		}
-		close(ch)
 	}()
 
 	for {
