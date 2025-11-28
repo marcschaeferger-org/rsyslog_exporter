@@ -446,14 +446,18 @@ func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
 	br := &brokenReader{data: []byte("col1 col2 col3 {\"name\":\"global\"}")}
 	re2 := New()
 	re2.scanner = bufio.NewScanner(br)
-	if err := re2.runLoop(context.Background(), true); err == nil {
+	// We expect an error from runLoop due to brokenReader returning an error on second Read.
+	// The concrete error value isn't asserted; only presence matters.
+	if re2.runLoop(context.Background(), true) == nil {
 		t.Fatalf("expected runLoop to return scanner error")
 	}
 }
 
 func TestHandleStatLineInvalidSplit(t *testing.T) {
 	re := New()
-	if err := re.handleStatLine([]byte("one two three")); err == nil {
+	// Invalid stat line (wrong number of space-separated columns) must produce split error.
+	// Only checking that some error occurred.
+	if re.handleStatLine([]byte("one two three")) == nil {
 		t.Fatalf("expected split error")
 	}
 }
@@ -463,7 +467,8 @@ func TestHandleStatLineDecodeError(t *testing.T) {
 	// Force TypeAction via marker and malformed JSON
 	// We need a 'processed' substring to pick TypeAction; include it
 	line := []byte("c1 c2 c3 {\"processed\":notjson}")
-	if err := re.handleStatLine(line); err == nil {
+	// Malformed JSON forces a decode error; ensure we get an error (content not important).
+	if re.handleStatLine(line) == nil {
 		t.Fatalf("expected decode error")
 	}
 }

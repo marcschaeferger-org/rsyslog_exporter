@@ -14,7 +14,9 @@ func TestAssertEqStringAndInt(t *testing.T) {
 
 func TestAssertPointFields(t *testing.T) {
 	// happy path: matches
-	AssertPointFields(t, 0, "name", 1, 123, "lbl", "name", 1, 123, "lbl")
+	want := PointExpectation{Name: "name", Type: 1, Value: 123, Label: "lbl"}
+	got := PointExpectation{Name: "name", Type: 1, Value: 123, Label: "lbl"}
+	AssertPointFields(t, 0, want, got)
 }
 
 // fakeT captures Errorf calls for assertion testing
@@ -37,10 +39,11 @@ func TestAssertErrors(t *testing.T) {
 	// int mismatch
 	AssertEqInt(ft, "ctx", 1, 2)
 	// point mismatches: name, type, value, label
-	AssertPointFields(ft, 0, "name", 1, 10, "lbl", "different", 1, 10, "lbl")
-	AssertPointFields(ft, 0, "name", 1, 10, "lbl", "name", 2, 10, "lbl")
-	AssertPointFields(ft, 0, "name", 1, 10, "lbl", "name", 1, 11, "lbl")
-	AssertPointFields(ft, 0, "name", 1, 10, "lbl", "name", 1, 10, "other")
+	want := PointExpectation{Name: "name", Type: 1, Value: 10, Label: "lbl"}
+	AssertPointFields(ft, 0, want, PointExpectation{Name: "different", Type: 1, Value: 10, Label: "lbl"})
+	AssertPointFields(ft, 0, want, PointExpectation{Name: "name", Type: 2, Value: 10, Label: "lbl"})
+	AssertPointFields(ft, 0, want, PointExpectation{Name: "name", Type: 1, Value: 11, Label: "lbl"})
+	AssertPointFields(ft, 0, want, PointExpectation{Name: "name", Type: 1, Value: 10, Label: "other"})
 
 	if len(ft.errs) != 6 { // 2 simple mismatches + 4 point field mismatches
 		t.Fatalf("expected 6 errors captured, got %d", len(ft.errs))

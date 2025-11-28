@@ -4,36 +4,26 @@ import "testing"
 
 func TestNewFromJSONErrorPaths(t *testing.T) {
 	bad := []byte("notjson")
-	// We only assert that an error is returned when JSON is invalid; the
-	// successful returned object is intentionally ignored here.
-	if _, err := NewActionFromJSON(bad); err == nil {
-		t.Fatalf("expected action error")
+	// Each constructor should fail with invalid JSON. We intentionally ignore
+	// the successful return value (first value) focusing only on error presence.
+	cases := []struct {
+		name string
+		fn   func([]byte) error
+	}{
+		{"action", func(b []byte) error { _, err := NewActionFromJSON(b); return err }},
+		{"dynstat", func(b []byte) error { _, err := NewDynStatFromJSON(b); return err }},
+		{"dynafilecache", func(b []byte) error { _, err := NewDynafileCacheFromJSON(b); return err }},
+		{"forward", func(b []byte) error { _, err := NewForwardFromJSON(b); return err }},
+		{"imudp", func(b []byte) error { _, err := NewInputIMUDPFromJSON(b); return err }},
+		{"input", func(b []byte) error { _, err := NewInputFromJSON(b); return err }},
+		{"k8s", func(b []byte) error { _, err := NewKubernetesFromJSON(b); return err }},
+		{"omkafka", func(b []byte) error { _, err := NewOmkafkaFromJSON(b); return err }},
+		{"queue", func(b []byte) error { _, err := NewQueueFromJSON(b); return err }},
+		{"resource", func(b []byte) error { _, err := NewResourceFromJSON(b); return err }},
 	}
-	if _, err := NewDynStatFromJSON(bad); err == nil {
-		t.Fatalf("expected dynstat error")
-	}
-	if _, err := NewDynafileCacheFromJSON(bad); err == nil {
-		t.Fatalf("expected dfc error")
-	}
-	if _, err := NewForwardFromJSON(bad); err == nil {
-		t.Fatalf("expected forward error")
-	}
-	if _, err := NewInputIMUDPFromJSON(bad); err == nil {
-		t.Fatalf("expected imudp error")
-	}
-	if _, err := NewInputFromJSON(bad); err == nil {
-		t.Fatalf("expected input error")
-	}
-	if _, err := NewKubernetesFromJSON(bad); err == nil {
-		t.Fatalf("expected k8s error")
-	}
-	if _, err := NewOmkafkaFromJSON(bad); err == nil {
-		t.Fatalf("expected omkafka error")
-	}
-	if _, err := NewQueueFromJSON(bad); err == nil {
-		t.Fatalf("expected queue error")
-	}
-	if _, err := NewResourceFromJSON(bad); err == nil {
-		t.Fatalf("expected resource error")
+	for _, c := range cases {
+		if c.fn(bad) == nil {
+			t.Fatalf("expected %s error", c.name)
+		}
 	}
 }

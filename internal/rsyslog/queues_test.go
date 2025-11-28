@@ -92,6 +92,8 @@ func TestQueueToPoints(t *testing.T) {
 			t.Fatalf(th.ExpectedIndexFmt, exp.idx)
 		}
 		pt := points[exp.idx]
-		th.AssertPointFields(t, exp.idx, exp.name, int(exp.metricType), exp.value, exp.labelValue, pt.Name, int(pt.Type), pt.Value, pt.LabelValue)
+		want := th.PointExpectation{Name: exp.name, Type: int(exp.metricType), Value: exp.value, Label: exp.labelValue}
+		got := th.PointExpectation{Name: pt.Name, Type: int(pt.Type), Value: pt.Value, Label: pt.LabelValue}
+		th.AssertPointFields(t, exp.idx, want, got)
 	}
 }

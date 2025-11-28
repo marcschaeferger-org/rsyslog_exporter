@@ -180,7 +180,9 @@ func TestOmkafkaToPoints(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(fmt.Sprintf("point idx %d", idx), func(t *testing.T) {
 			p := points[idx]
-			th.AssertPointFields(t, idx, tc.Name, int(tc.Type), tc.Value, tc.LabelValue, p.Name, int(p.Type), p.Value, p.LabelValue)
+			want := th.PointExpectation{Name: tc.Name, Type: int(tc.Type), Value: tc.Value, Label: tc.LabelValue}
+			got := th.PointExpectation{Name: p.Name, Type: int(p.Type), Value: p.Value, Label: p.LabelValue}
+			th.AssertPointFields(t, idx, want, got)
 		})
 	}
 
