@@ -148,8 +148,17 @@ func (re *Exporter) handleStatLine(rawbuf []byte) error {
 
 // test hooks used by unit tests to simulate concurrent map mutation.
 var (
-	describeBeforeGetHook = func() {}
-	collectBeforeGetHook  = func() {}
+	// The hooks are intentionally set to no-op functions in production code so
+	// callers don't need to perform nil checks on the hot code path. Tests may
+	// override these variables to inject race/mutation scenarios (for example
+	// deleting a key between Keys() and Get()). Keep them as non-nil empty
+	// functions to keep runtime behavior simple and efficient.
+	describeBeforeGetHook = func() {
+		// intentionally empty: test hook to simulate concurrent mutation
+	}
+	collectBeforeGetHook = func() {
+		// intentionally empty: test hook to simulate concurrent mutation
+	}
 )
 
 // Describe sends the description of currently known metrics collected

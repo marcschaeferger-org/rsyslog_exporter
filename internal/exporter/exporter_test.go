@@ -379,6 +379,11 @@ type brokenReader struct {
 
 type errorAfterFirstRead struct{ used bool }
 
+// Error implements error so linters don't warn about the "Error" suffix on the
+// type name. The type is primarily an io.Reader used in tests; implementing
+// Error() is harmless and makes the intent explicit.
+func (*errorAfterFirstRead) Error() string { return "errorAfterFirstRead" }
+
 func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
 	if !e.used {
 		e.used = true
@@ -407,10 +412,18 @@ func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
 	good := resourceLineJSON("r1", 1)
 	// prepare combined input: malformed then good
 	buf := bytes.NewBuffer(nil)
-	buf.Write(malformed)
-	buf.WriteByte('\n')
-	buf.Write(good)
-	buf.WriteByte('\n')
+	if _, err := buf.Write(malformed); err != nil {
+		t.Fatalf("buffer write failed: %v", err)
+	}
+	if err := buf.WriteByte('\n'); err != nil {
+		t.Fatalf("buffer write byte failed: %v", err)
+	}
+	if _, err := buf.Write(good); err != nil {
+		t.Fatalf("buffer write failed: %v", err)
+	}
+	if err := buf.WriteByte('\n'); err != nil {
+		t.Fatalf("buffer write byte failed: %v", err)
+	}
 
 	// set scanner to buf
 	re.scanner = bufio.NewScanner(buf)
@@ -579,16 +592,33 @@ func TestRunLoopCancelDuringSend(t *testing.T) {
 func TestRunLoopContextCancel(t *testing.T) {
 	re := New()
 	// block scanning by using a pipe with no writer
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe failed: %v", err)
+	}
 	re.scanner = bufio.NewScanner(r)
 	ctx, cancel := context.WithCancel(context.Background())
+	// Use a buffered channel to communicate any close error back to the main
+	// test goroutine so we don't call testing.T methods from a different
+	// goroutine (which the testinggoroutine analyzer warns about).
+	closeErrC := make(chan error, 1)
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 		cancel()
 		// keep writer open until after cancel, then close to unblock goroutine cleanup
-		_ = w.Close()
+		if cerr := w.Close(); cerr != nil {
+			closeErrC <- cerr
+			return
+		}
+		// close channel to signal no error
+		close(closeErrC)
 	}()
-	err := re.runLoop(ctx, true)
+
+	err = re.runLoop(ctx, true)
+	// check whether the goroutine reported a close error and handle it here
+	if cerr, ok := <-closeErrC; ok && cerr != nil {
+		t.Fatalf("failed to close pipe writer: %v", cerr)
+	}
 	if err == nil {
 		t.Fatalf("expected context cancellation error")
 	}

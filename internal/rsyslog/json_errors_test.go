@@ -4,6 +4,8 @@ import "testing"
 
 func TestNewFromJSONErrorPaths(t *testing.T) {
 	bad := []byte("notjson")
+	// We only assert that an error is returned when JSON is invalid; the
+	// successful returned object is intentionally ignored here.
 	if _, err := NewActionFromJSON(bad); err == nil {
 		t.Fatalf("expected action error")
 	}
