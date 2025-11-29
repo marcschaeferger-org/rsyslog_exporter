@@ -21,10 +21,10 @@ const (
 	ExpectedIndexFmt        = "expected point index %d to exist"
 	ExpectedPointsFmt       = "expected %d points, got %d"
 	ExpectedParseErrFmt     = "expected parsing %s not to fail, got: %v"
-	DynamicStatDesc         = "dynamic statistic bucket global"
+	DynamicStatBucketDescription         = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
 	ResourceUsage  = "resource-usage"
-	MainQueueLabel = "main Q"
+	MainQueueLabel = "main Queue"
 
 	MsgPerHostOpsOverflow   = "msg_per_host.ops_overflow"
 	MsgPerHostNewMetricAdd  = "msg_per_host.new_metric_add"
@@ -34,6 +34,6 @@ const (
 	// Common test label values
 	TestAction     = "test_action"
 	TestInput      = "test_input"
-	TestInputIMUDP = "test_input_imudp"
+	TestInputIMUDPProtocol = "test_input_imudp"
 	Cluster        = "cluster"
 )
