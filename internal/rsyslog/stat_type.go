@@ -53,7 +53,7 @@ func StatType(buf []byte) Type {
 // Returns TypeUnknown if parsing fails or no matching name is found.
 func detectByName(buf []byte) Type {
 	var obj map[string]any
-	if err := json.Unmarshal(buf, &obj); err != nil {
+	if json.Unmarshal(buf, &obj) != nil {
 		// Unmarshal failed; classification falls back to substring heuristics.
 		// Returning TypeUnknown here keeps parsing cheap without logging noise.
 		return TypeUnknown
