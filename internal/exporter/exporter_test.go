@@ -219,36 +219,36 @@ func TestHandleLineWithQueue(t *testing.T) {
 		{
 			Name:       "queue_size",
 			Val:        10,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 		{
 			Name:       "queue_enqueued",
 			Val:        20,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 		{
 			Name:       "queue_full",
 			Val:        30,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 		{
 			Name:       "queue_discarded_full",
 			Val:        40,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 		{
 			Name:       "queue_discarded_not_full",
 			Val:        50,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 		{
 			Name:       "queue_max_size",
 			Val:        60,
-			LabelValue: th.MainQ,
+			LabelValue: th.MainQueueLabel,
 		},
 	}
 
-	queueLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.MainQ + `","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
+	queueLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.MainQueueLabel + `","size":10,"enqueued":20,"full":30,"discarded.full":40,"discarded.nf":50,"maxqsize":60}`)
 	testHelper(t, queueLog, tests)
 }
 

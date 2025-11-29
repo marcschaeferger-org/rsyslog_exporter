@@ -21,10 +21,10 @@ const (
 	ExpectedIndexFmt    = "expected point index %d to exist"
 	ExpectedPointsFmt   = "expected %d points, got %d"
 	ExpectedParseErrFmt = "expected parsing %s not to fail, got: %v"
-	DynStatDesc         = "dynamic statistic bucket global"
+	DynamicStatisticBucketDescription = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
-	ResourceUsage = "resource-usage"
-	MainQ         = "main Q"
+	ResourceUsage    = "resource-usage"
+	MainQueueLabel   = "main Q"
 
 	MsgPerHostOpsOverflow   = "msg_per_host.ops_overflow"
 	MsgPerHostNewMetricAdd  = "msg_per_host.new_metric_add"
