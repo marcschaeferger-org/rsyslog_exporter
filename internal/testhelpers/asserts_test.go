@@ -62,8 +62,8 @@ func TestAssertErrors(t *testing.T) {
 	}
 	// Assert presence of specific substrings for each mismatch category
 	wantSubstrings := []string{
-		"ctx: wanted 'a', got 'b'",            // string mismatch (uses WantedIntFmt pattern variant for strings?)
-		"ctx: wanted '1', got '2'",            // int mismatch
+		"ctx: wanted \"a\", got \"b\"",        // string mismatch
+		"ctx: wanted 1, got 2",                // int mismatch
 		"idx 0: want name name got different", // name mismatch full prefix
 		"name: want type 1 got 2",             // type mismatch
 		"name: want value 10 got 11",          // value mismatch

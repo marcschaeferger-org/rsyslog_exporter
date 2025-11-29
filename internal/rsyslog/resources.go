@@ -35,12 +35,12 @@ type Resource struct {
 }
 
 func NewResourceFromJSON(b []byte) (*Resource, error) {
-	var pstat Resource
-	err := json.Unmarshal(b, &pstat)
+	var resource Resource
+	err := json.Unmarshal(b, &resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode resource stat `%v`: %w", string(b), err)
 	}
-	return &pstat, nil
+	return &resource, nil
 }
 
 func (r *Resource) ToPoints() []*model.Point {

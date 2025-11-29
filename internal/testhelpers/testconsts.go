@@ -14,17 +14,17 @@ package testhelpers
 
 // Shared format strings used across tests to avoid duplicated literals.
 const (
-	WantStringFmt       = "wanted '%s', got '%s'"
-	WantIntFmt          = "wanted '%d', got '%d'"
-	WantFloatFmt        = "wanted '%f', got '%f'"
+	WantStringFmt       = "wanted %q, got %q"
+	WantIntFmt          = "wanted %d, got %d"
+	WantFloatFmt        = "wanted %f, got %f"
 	DetectedTypeFmt     = "detected pstat type should be %d but is %d"
 	ExpectedIndexFmt    = "expected point index %d to exist"
 	ExpectedPointsFmt   = "expected %d points, got %d"
 	ExpectedParseErrFmt = "expected parsing %s not to fail, got: %v"
-	DynamicStatisticBucketDescription = "dynamic statistic bucket global"
+	DynamicStatDesc     = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
-	ResourceUsage    = "resource-usage"
-	MainQueueLabel   = "main Q"
+	ResourceUsage  = "resource-usage"
+	MainQueueLabel = "main Q"
 
 	MsgPerHostOpsOverflow   = "msg_per_host.ops_overflow"
 	MsgPerHostNewMetricAdd  = "msg_per_host.new_metric_add"
