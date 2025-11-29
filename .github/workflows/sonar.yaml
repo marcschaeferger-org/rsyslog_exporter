@@ -7,6 +7,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Least-privilege GITHUB_TOKEN
 # Minimal benötigte Rechte für GITHUB_TOKEN
 permissions:
   contents: read       # Code auschecken
@@ -21,6 +22,8 @@ jobs:
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - name: Checkout
         # actions/checkout@v6.0.0
@@ -35,25 +38,27 @@ jobs:
         with:
           # Aktuellstes Go 1.25.x – Stand jetzt: 1.25.4 ist stable 
           go-version: '1.25.4'
-          check-latest: true
+          cache: true                 # Go module cache aktivieren
 
       - name: Run tests with coverage
         run: |
           go test ./... -covermode=atomic -coverprofile=coverage.out
 
       - name: SonarQube Scan
-        # Schutz vor Secret-Leak bei Fork-PRs
+        # Kein Scan auf PRs aus Forks ohne Rechte auf dein Repo
         if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
-        # SonarSource/sonarqube-scan-action@v6.0.0
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # Bei SonarQube Server zusätzlich:
+          # SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          # Optional, falls Sonar auch GITHUB_TOKEN für Deko braucht:
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Report test coverage to DeepSource
         # Ebenfalls Secret-Schutz bei Fork-PRs
         if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
-        # deepsourcelabs/test-coverage-action@v1.1.3 (neueste Release-Version)
-        uses: deepsourcelabs/test-coverage-action@4284bb7
+        uses: deepsourcelabs/test-coverage-action@4284bb73a04adb39faaa6bfcc2d0e3dd137ffed7 # v1.1.3
         with:
           key: go
           coverage-file: coverage.out
