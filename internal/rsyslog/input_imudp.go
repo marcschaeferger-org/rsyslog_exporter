@@ -32,7 +32,7 @@ func NewInputIMUDPFromJSON(b []byte) (*InputIMUDP, error) {
 	var pstat InputIMUDP
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding input stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("error decoding input stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }

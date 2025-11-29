@@ -58,7 +58,7 @@ func NewOmkafkaFromJSON(b []byte) (*Omkafka, error) {
 	var pstat Omkafka
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode omkafka stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("failed to decode omkafka stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }

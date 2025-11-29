@@ -12,10 +12,14 @@
 // limitations under the License.
 package rsyslog
 
-import "testing"
+import (
+	"encoding/json"
+	"errors"
+	"testing"
+)
 
 func TestNewFromJSONErrorPaths(t *testing.T) {
-	invalidJSON := []byte("notjson")
+	invalidJSON := []byte("{invalid")
 	cases := []struct {
 		name      string
 		parseFunc func([]byte) (any, error)
@@ -34,8 +38,9 @@ func TestNewFromJSONErrorPaths(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := tc.parseFunc(invalidJSON) //NOSONAR
-			if err == nil {
-				t.Fatalf("expected %s error", tc.name)
+			var syntaxErr *json.SyntaxError
+			if err == nil || !errors.As(err, &syntaxErr) {
+				t.Fatalf("expected %s to produce a JSON SyntaxError, got %v", tc.name, err)
 			}
 		})
 	}
