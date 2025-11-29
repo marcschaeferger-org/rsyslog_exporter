@@ -15,10 +15,10 @@ package rsyslog
 import "testing"
 
 func TestNewFromJSONErrorPaths(t *testing.T) {
-	bad := []byte("notjson")
+	invalidJSON := []byte("notjson")
 	cases := []struct {
-		name string
-		fn   func([]byte) error
+		name      string
+		parseFunc func([]byte) (any, error)
 	}{
 		{"action", func(b []byte) error { _, err := NewActionFromJSON(b); return err }},
 		{"dynstat", func(b []byte) error { _, err := NewDynStatFromJSON(b); return err }},
@@ -31,10 +31,10 @@ func TestNewFromJSONErrorPaths(t *testing.T) {
 		{"queue", func(b []byte) error { _, err := NewQueueFromJSON(b); return err }},
 		{"resource", func(b []byte) error { _, err := NewResourceFromJSON(b); return err }},
 	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if err := c.fn(bad); err == nil {
-				t.Fatalf("expected %s error", c.name)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := tc.parseFunc(invalidJSON); err == nil {
+				t.Fatalf("expected %s error", tc.name)
 			}
 		})
 	}
