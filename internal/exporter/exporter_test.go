@@ -41,12 +41,15 @@ func resourceLineJSON(name string, utime int64) []byte {
 // bufio.Scanner report Err() != nil without producing any Scan() results.
 type immediateErrReader struct{}
 
-func (immediateErrReader) Read(_ []byte) (int, error) { return 0, fmt.Errorf("simulated read error") }
+func (immediateErrReader) Read(_ []byte) (int, error) {
+	return 0, fmt.Errorf("test error: immediate read failure")
+}
 
 // TestRunLoopScannerErrSelectCtxDone ensures the scanner goroutine takes the
 // <-ctx.Done() branch when scanner.Err() != nil and the context is already
 // cancelled before runLoop starts.
 func TestRunLoopScannerErrSelectCtxDone(t *testing.T) {
+	t.Helper()
 	re := New()
 	// scanner that will have Err() != nil immediately
 	re.scanner = bufio.NewScanner(immediateErrReader{})
@@ -412,7 +415,7 @@ type errorAfterFirstRead struct{ used bool }
 // Error implements error so linters don't warn about the "Error" suffix on the
 // type name. The type is primarily an io.Reader used in tests; implementing
 // Error() is harmless and makes the intent explicit.
-func (*errorAfterFirstRead) Error() string { return "errorAfterFirstRead" }
+func (*errorAfterFirstRead) Error() string { return "test error: simulated failure after first read" }
 
 func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
 	if !e.used {
@@ -421,7 +424,7 @@ func (e *errorAfterFirstRead) Read(p []byte) (int, error) {
 		copy(p, "incomplete")
 		return len("incomplete"), nil
 	}
-	return 0, fmt.Errorf("read error")
+	return 0, fmt.Errorf("test error: simulated read failure")
 }
 
 func (b *brokenReader) Read(p []byte) (int, error) {
@@ -430,7 +433,7 @@ func (b *brokenReader) Read(p []byte) (int, error) {
 		n := copy(p, b.data)
 		return n, nil
 	}
-	return 0, fmt.Errorf("read error")
+	return 0, fmt.Errorf("test error: broken reader failure")
 }
 
 func TestRunLoopCountsErrorsAndHandlesScannerErr(t *testing.T) {
@@ -700,7 +703,6 @@ func TestDecoderErrorBranches(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		c := c // capture range variable for the closure
 		t.Run(c.name, func(t *testing.T) {
 			re := New()
 			err := re.handleStatLine(c.line)
