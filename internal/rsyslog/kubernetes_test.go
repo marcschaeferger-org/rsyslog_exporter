@@ -25,7 +25,7 @@ var (
 
 func TestNewKubernetesFromJSON(t *testing.T) {
 	if got := StatType(kubernetesLog); got != TypeKubernetes {
-		t.Errorf(th.DetectedTypeFmt, TypeKubernetes, got)
+		t.Errorf(th.DetectedStatTypeFmt, TypeKubernetes, got)
 	}
 	pstat, err := NewKubernetesFromJSON(kubernetesLog)
 	if err != nil {

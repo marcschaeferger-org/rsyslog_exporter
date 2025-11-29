@@ -26,7 +26,7 @@ var (
 func TestGetInput(t *testing.T) {
 	logType := StatType(inputLog)
 	if logType != TypeInput {
-		t.Errorf(th.DetectedTypeFmt, TypeInput, logType)
+		t.Errorf(th.DetectedStatTypeFmt, TypeInput, logType)
 	}
 
 	pstat, err := NewInputFromJSON([]byte(inputLog))

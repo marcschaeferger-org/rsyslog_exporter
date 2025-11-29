@@ -14,10 +14,10 @@ package testhelpers
 
 // Shared format strings used across tests to avoid duplicated literals.
 const (
-	WantStringFmt       = "wanted %q, got %q"
+	WantStringFmt       = "wanted %s, got %s"
 	WantIntFmt          = "wanted %d, got %d"
 	WantFloatFmt        = "wanted %f, got %f"
-	DetectedTypeFmt     = "detected pstat type should be %d but is %d"
+	DetectedStatTypeFmt = "detected stat type should be %d but is %d"
 	ExpectedIndexFmt    = "expected point index %d to exist"
 	ExpectedPointsFmt   = "expected %d points, got %d"
 	ExpectedParseErrFmt = "expected parsing %s not to fail, got: %v"
@@ -34,6 +34,6 @@ const (
 	// Common test label values
 	TestAction     = "test_action"
 	TestInput      = "test_input"
-	TestInputIMUDP = "test_input_imudp"
+	TestInputIMDUP = "test_input_imdup"
 	Cluster        = "cluster"
 )

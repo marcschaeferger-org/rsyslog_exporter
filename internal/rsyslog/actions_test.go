@@ -27,7 +27,7 @@ var (
 func TestNewActionFromJSON(t *testing.T) {
 	logType := StatType(actionLog)
 	if logType != TypeAction {
-		t.Errorf(th.DetectedTypeFmt, TypeAction, logType)
+		t.Errorf(th.DetectedStatTypeFmt, TypeAction, logType)
 	}
 
 	pstat, err := NewActionFromJSON([]byte(actionLog))
