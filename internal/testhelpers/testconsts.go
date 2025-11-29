@@ -14,14 +14,14 @@ package testhelpers
 
 // Shared format strings used across tests to avoid duplicated literals.
 const (
-	ExpectedActualStringFmt = "wanted %s, got %s"
-	ExpectedActualIntFmt    = "wanted %d, got %d"
-	ExpectedActualFloatFmt  = "wanted %f, got %f"
-	DetectedStatTypeFmt     = "detected stat type should be %d but is %d"
-	ExpectedIndexFmt        = "expected point index %d to exist"
-	ExpectedPointsFmt       = "expected %d points, got %d"
-	ExpectedParseErrFmt     = "expected parsing %s not to fail, got: %v"
-	DynamicStatBucketDescription         = "dynamic statistic bucket global"
+	ExpectedActualStringFmt      = "wanted %s, got %s"
+	ExpectedActualIntFmt         = "wanted %d, got %d"
+	ExpectedActualFloatFmt       = "wanted %f, got %f"
+	DetectedStatTypeFmt          = "detected stat type should be %d but is %d"
+	ExpectedIndexFmt             = "expected point index %d to exist"
+	ExpectedPointsFmt            = "expected %d points, got %d"
+	ExpectedParseErrFmt          = "expected parsing %s not to fail, got: %v"
+	DynamicStatBucketDescription = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
 	ResourceUsage  = "resource-usage"
 	MainQueueLabel = "main Queue"
@@ -32,8 +32,8 @@ const (
 	MsgPerHostMetricsPurged = "msg_per_host.metrics_purged"
 	MsgPerHostOpsIgnored    = "msg_per_host.ops_ignored"
 	// Common test label values
-	TestAction     = "test_action"
-	TestInput      = "test_input"
+	TestAction             = "test_action"
+	TestInput              = "test_input"
 	TestInputIMUDPProtocol = "test_input_imudp"
-	Cluster        = "cluster"
+	Cluster                = "cluster"
 )

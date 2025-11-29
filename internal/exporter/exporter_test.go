@@ -61,7 +61,6 @@ func TestHandleStatLineResource(t *testing.T) {
 
 func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 	exporter := New()
-	// nolint:errcheck
 	exporter.handleStatLine(line)
 
 	for _, k := range exporter.Keys() {
@@ -79,7 +78,6 @@ func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 		}
 	}
 
-	// nolint:errcheck
 	exporter.handleStatLine(line)
 
 	for _, item := range testCase {
@@ -193,7 +191,7 @@ func TestHandleLineWithResource(t *testing.T) {
 		{
 			Name:       "resource_nivcsw",
 			Val:        90,
-			LabelValue: "resource-usage",
+			LabelValue: th.ResourceUsage,
 		},
 	}
 
@@ -318,7 +316,6 @@ func TestHandleUnknown(t *testing.T) {
 	unknownLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"a":"b"}`)
 
 	exporter := New()
-	// nolint:errcheck
 	exporter.handleStatLine(unknownLog)
 
 	if want, got := 0, len(exporter.Keys()); want != got {
@@ -363,7 +360,6 @@ func TestHandleAdditionalStatTypes(t *testing.T) {
 	}
 	for i, c := range cases {
 		re := New()
-		// nolint:errcheck
 		re.handleStatLine([]byte(c.line))
 		if len(re.Keys()) == 0 {
 			t.Fatalf("case %d: expected at least one point for line %s", i, c.line)
