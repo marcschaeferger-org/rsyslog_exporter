@@ -75,7 +75,7 @@ func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 		}
 
 		if want, got := item.Val, p.PromValue(); want != got {
-			t.Errorf(th.WantFloatFmt, item.Name, want, got)
+			t.Errorf(th.WantFloatFmt, want, got)
 		}
 	}
 

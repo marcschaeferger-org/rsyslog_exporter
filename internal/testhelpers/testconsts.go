@@ -16,8 +16,9 @@ package testhelpers
 const (
 	WantStringFmt = "wanted '%s', got '%s'"
 	WantIntFmt    = "wanted '%d', got '%d'"
-	// (Removed: Slight variant used in some tests; kept for compatibility.)
-	WantFloatFmt        = "%s: want '%f', got '%f'"
+	// WantFloatFmt uses a format distinct from other "want/got" strings
+	// for legacy compatibility with older tests where the key or description preceded the values.
+	WantFloatFmt        = "wanted '%f', got '%f'"
 	DetectedTypeFmt     = "detected pstat type should be %d but is %d"
 	ExpectedIndexFmt    = "expected point index %d to exist"
 	ExpectedPointsFmt   = "expected %d points, got %d"
