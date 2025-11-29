@@ -41,7 +41,7 @@ func resourceLineJSON(name string, utime int64) []byte {
 // bufio.Scanner report Err() != nil without producing any Scan() results.
 type immediateErrReader struct{}
 
-func (immediateErrReader) Read(p []byte) (int, error) { return 0, fmt.Errorf("simulated read error") }
+func (immediateErrReader) Read(_ []byte) (int, error) { return 0, fmt.Errorf("simulated read error") }
 
 // TestRunLoopScannerErrSelectCtxDone ensures the scanner goroutine takes the
 // <-ctx.Done() branch when scanner.Err() != nil and the context is already
@@ -138,8 +138,8 @@ type testUnit struct {
 	LabelValue string
 }
 
-func (t *testUnit) key() string {
-	return fmt.Sprintf("%s.%s", t.Name, t.LabelValue)
+func (u *testUnit) key() string {
+	return fmt.Sprintf("%s.%s", u.Name, u.LabelValue)
 }
 
 func TestHandleLineWithAction(t *testing.T) {
