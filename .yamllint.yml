@@ -1,0 +1,13 @@
+extends: default
+
+rules:
+  # GitHub workflow files often contain long lines (actions, URLs). Allow longer
+  # lines to avoid noisy failures while still warning on extremely long lines.
+  line-length:
+    max: 240
+    level: warning
+
+  # GitHub workflow files typically omit the '---' document start marker.
+  document-start: disable
+
+  # Keep trailing spaces and other minor formatting at default severity.

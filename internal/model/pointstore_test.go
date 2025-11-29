@@ -111,9 +111,16 @@ func TestPointStore(t *testing.T) {
 func TestKeysOrdering(t *testing.T) {
 	ps := NewStore()
 
-	ps.Set(&Point{Name: "b", Type: Gauge, Value: 1})
-	ps.Set(&Point{Name: "a", Type: Gauge, Value: 2})
-	ps.Set(&Point{Name: "c", Type: Gauge, Value: 3})
+	const setFailedFmt = "Set failed: %v"
+	if err := ps.Set(&Point{Name: "b", Type: Gauge, Value: 1}); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
+	if err := ps.Set(&Point{Name: "a", Type: Gauge, Value: 2}); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
+	if err := ps.Set(&Point{Name: "c", Type: Gauge, Value: 3}); err != nil {
+		t.Fatalf(setFailedFmt, err)
+	}
 
 	keys := ps.Keys()
 	if len(keys) != 3 {
