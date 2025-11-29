@@ -526,7 +526,7 @@ func TestCollectErrorBranch(t *testing.T) {
 
 const (
 	statsLineErrMsg = "expected stats_line_errors >= 1, got %d"
-	setFailedFmt   = "Set failed: %v"
+	setFailedFmt    = "Set failed: %v"
 )
 
 // --- merged from runloop_test.go ---
