@@ -1,17 +1,22 @@
+---
 go:
     # This must match .github/workflows/build.yml.
-    version: 1.23
+    version: 1.25
 repository:
     path: github.com/prometheus-community/rsyslog_exporter
 build:
     binaries:
         - name: rsyslog_exporter
+          path: ./cmd/rsyslog_exporter
+    # yamllint disable rule:line-length
     ldflags: |
         -X github.com/prometheus/common/version.Version={{.Version}}
         -X github.com/prometheus/common/version.Revision={{.Revision}}
         -X github.com/prometheus/common/version.Branch={{.Branch}}
         -X github.com/prometheus/common/version.BuildUser={{user}}@{{host}}
         -X github.com/prometheus/common/version.BuildDate={{date "20060102-15:04:05"}}
+    # yamllint enable rule:line-length
+
 tarball:
     files:
         - LICENSE

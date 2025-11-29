@@ -1,7 +1,7 @@
 ---
 # This action is synced from https://github.com/prometheus/prometheus
 name: golangci-lint
-on:
+"on":
   push:
     paths:
       - "go.sum"
@@ -12,28 +12,36 @@ on:
       - ".golangci.yml"
   pull_request:
 
-permissions:  # added using https://github.com/step-security/secure-repo
+# added using https://github.com/step-security/secure-repo
+permissions:
   contents: read
 
 jobs:
   golangci:
     permissions:
-      contents: read  # for actions/checkout to fetch code
-      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
+      # for actions/checkout to fetch code
+      contents: read
+      # for golangci/golangci-lint-action to fetch pull requests
+      pull-requests: read
     name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        # v6.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       - name: Install Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        # v6.1.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
         with:
-          go-version: 1.25
+          go-version: 1.25.x
       - name: Install snmp_exporter/generator dependencies
         run: sudo apt-get update && sudo apt-get -y install libsnmp-dev
         if: github.repository == 'prometheus/snmp_exporter'
       - name: Lint
-        uses: golangci/golangci-lint-action@e7fa5ac41e1cf5b7d48e45e42232ce7ada589601 # v9.1.0
+        # v9.1.0
+        # yamllint disable rule:line-length
+        uses: golangci/golangci-lint-action@e7fa5ac41e1cf5b7d48e45e42232ce7ada589601
+        # yamllint enable rule:line-length
         with:
           args: --verbose
           version: v2.6.2
