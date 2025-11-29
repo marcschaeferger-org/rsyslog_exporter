@@ -33,7 +33,7 @@ func TestNewFromJSONErrorPaths(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := tc.parseFunc(invalidJSON) //NOSONAR - error is checked on the following line
+			_, err := tc.parseFunc(invalidJSON) //NOSONAR
 			if err == nil {
 				t.Fatalf("expected %s error", tc.name)
 			}
