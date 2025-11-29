@@ -1,32 +1,59 @@
 name: Build-Sonar
+
 on:
   push:
     branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+
+# Minimal benötigte Rechte für GITHUB_TOKEN
+permissions:
+  contents: read       # Code auschecken
+  pull-requests: read  # PR-Metadaten lesen (für Analyse/Reporting)
+
+# Verhindert parallel laufende Jobs pro Branch/PR
+concurrency:
+  group: build-sonar-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        # actions/checkout@v6.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          # Shallow Clone deaktiviert – besseres Sonar- und PR-Reporting
+          fetch-depth: 0
+
       - name: Set up Go
-        uses: actions/setup-go@v6
+        # actions/setup-go@v6.0.0
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00
         with:
-          go-version: '1.25'
+          # Aktuellstes Go 1.25.x – Stand jetzt: 1.25.4 ist stable 
+          go-version: '1.25.4'
+          check-latest: true
+
       - name: Run tests with coverage
         run: |
           go test ./... -covermode=atomic -coverprofile=coverage.out
+
       - name: SonarQube Scan
+        # Schutz vor Secret-Leak bei Fork-PRs
         if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: SonarSource/sonarqube-scan-action@v6
+        # SonarSource/sonarqube-scan-action@v6.0.0
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Report test coverage to DeepSource
-        uses: deepsourcelabs/test-coverage-action@v1.1.3
+        # Ebenfalls Secret-Schutz bei Fork-PRs
+        if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+        # deepsourcelabs/test-coverage-action@v1.1.3 (neueste Release-Version)
+        uses: deepsourcelabs/test-coverage-action@4284bb7
         with:
           key: go
           coverage-file: coverage.out
