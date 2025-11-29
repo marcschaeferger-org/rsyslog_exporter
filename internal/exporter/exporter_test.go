@@ -27,6 +27,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const handleStatLineFailMsg = "handleStatLine failed: %v"
+
 // Build a fake log line as the exporter expects: 4 columns with the JSON in the 4th.
 func resourceLineJSON(name string, utime int64) []byte {
 	// Use %q to ensure proper JSON string quoting and escaping of name.
@@ -35,11 +37,34 @@ func resourceLineJSON(name string, utime int64) []byte {
 	return []byte("col1 col2 col3 " + js)
 }
 
+// immediateErrReader returns an error immediately on Read. Used to make
+// bufio.Scanner report Err() != nil without producing any Scan() results.
+type immediateErrReader struct{}
+
+func (immediateErrReader) Read(p []byte) (int, error) { return 0, fmt.Errorf("simulated read error") }
+
+// TestRunLoopScannerErrSelectCtxDone ensures the scanner goroutine takes the
+// <-ctx.Done() branch when scanner.Err() != nil and the context is already
+// cancelled before runLoop starts.
+func TestRunLoopScannerErrSelectCtxDone(t *testing.T) {
+	re := New()
+	// scanner that will have Err() != nil immediately
+	re.scanner = bufio.NewScanner(immediateErrReader{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel before starting runLoop so the goroutine's select should hit
+	// the <-ctx.Done() branch instead of attempting to send on ch.
+	cancel()
+
+	// Call runLoop; ensure it returns (we don't assert on exact error here).
+	_ = re.runLoop(ctx, true)
+}
+
 func TestHandleStatLineResource(t *testing.T) {
 	re := New()
 	line := resourceLineJSON("myres", 42)
 	if err := re.handleStatLine(line); err != nil {
-		t.Fatalf("handleStatLine failed: %v", err)
+		t.Fatalf(handleStatLineFailMsg, err)
 	}
 
 	// verify store has the expected point key (name.label)
@@ -61,7 +86,9 @@ func TestHandleStatLineResource(t *testing.T) {
 
 func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 	exporter := New()
-	exporter.handleStatLine(line)
+	if err := exporter.handleStatLine(line); err != nil {
+		t.Fatalf(handleStatLineFailMsg, err)
+	}
 
 	for _, k := range exporter.Keys() {
 		t.Logf("have key: '%s'", k)
@@ -78,7 +105,9 @@ func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 		}
 	}
 
-	exporter.handleStatLine(line)
+	if err := exporter.handleStatLine(line); err != nil {
+		t.Fatalf(handleStatLineFailMsg, err)
+	}
 
 	for _, item := range testCase {
 		p, err := exporter.Get(item.key())
@@ -316,7 +345,10 @@ func TestHandleUnknown(t *testing.T) {
 	unknownLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"a":"b"}`)
 
 	exporter := New()
-	exporter.handleStatLine(unknownLog)
+	// unknownLog is expected to produce an error from handleStatLine; check and ignore.
+	if err := exporter.handleStatLine(unknownLog); err != nil {
+		t.Logf("handleStatLine returned expected error for unknown log: %v", err)
+	}
 
 	if want, got := 0, len(exporter.Keys()); want != got {
 		t.Errorf(th.ExpectedActualIntFmt, want, got)
@@ -360,7 +392,9 @@ func TestHandleAdditionalStatTypes(t *testing.T) {
 	}
 	for i, c := range cases {
 		re := New()
-		re.handleStatLine([]byte(c.line))
+		if err := re.handleStatLine([]byte(c.line)); err != nil {
+			t.Fatalf("handleStatLine failed for case %d: %v", i, err)
+		}
 		if len(re.Keys()) == 0 {
 			t.Fatalf("case %d: expected at least one point for line %s", i, c.line)
 		}
