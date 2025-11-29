@@ -14,9 +14,9 @@ package testhelpers
 
 // Shared format strings used across tests to avoid duplicated literals.
 const (
-	WantStringFmt = "wanted '%s', got '%s'"
-	WantIntFmt    = "wanted '%d', got '%d'"
-	WantFloatFmt  = "wanted '%f', got '%f'"
+	WantStringFmt       = "wanted '%s', got '%s'"
+	WantIntFmt          = "wanted '%d', got '%d'"
+	WantFloatFmt        = "wanted '%f', got '%f'"
 	DetectedTypeFmt     = "detected pstat type should be %d but is %d"
 	ExpectedIndexFmt    = "expected point index %d to exist"
 	ExpectedPointsFmt   = "expected %d points, got %d"
