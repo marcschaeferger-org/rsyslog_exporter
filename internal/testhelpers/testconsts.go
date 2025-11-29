@@ -14,14 +14,14 @@ package testhelpers
 
 // Shared format strings used across tests to avoid duplicated literals.
 const (
-	ExpectedActualStringFmt      = "wanted %s, got %s"
-	ExpectedActualIntFmt         = "wanted %d, got %d"
-	ExpectedActualFloatFmt       = "wanted %f, got %f"
-	DetectedStatTypeFmt          = "detected stat type should be %d but is %d"
-	ExpectedIndexFmt             = "expected point index %d to exist"
-	ExpectedPointsFmt            = "expected %d points, got %d"
-	ExpectedParseErrFmt          = "expected parsing %s not to fail, got: %v"
-	DynamicStatBucketDescription = "dynamic statistic bucket global"
+	ExpectedActualStringFmt = "wanted %s, got %s"
+	ExpectedActualIntFmt    = "wanted %d, got %d"
+	ExpectedActualFloatFmt  = "wanted %f, got %f"
+	DetectedStatTypeFmt     = "detected stat type should be %d but is %d"
+	ExpectedIndexFmt        = "expected point index %d to exist"
+	ExpectedPointsFmt       = "expected %d points, got %d"
+	ExpectedParseErrFmt     = "expected parsing %s not to fail, got: %v"
+	DynStatBucketDesc       = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
 	ResourceUsage  = "resource-usage"
 	MainQueueLabel = "main Queue"
