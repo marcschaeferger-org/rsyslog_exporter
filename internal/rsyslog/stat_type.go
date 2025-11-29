@@ -14,6 +14,7 @@
 package rsyslog
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 )
@@ -37,8 +38,8 @@ const (
 
 // StatType detects the impstats message type from the raw JSON buffer.
 func StatType(buf []byte) Type {
-	line := string(buf)
-	if strings.Contains(line, "processed") {
+	// Only match "processed" as a JSON key to reduce risk of false identification.
+	if bytes.Contains(buf, []byte("\"processed\":")) {
 		return TypeAction
 	}
 	// Use short variable declaration inside the condition to avoid calling
@@ -46,7 +47,7 @@ func StatType(buf []byte) Type {
 	if t := detectByName(buf); t != TypeUnknown {
 		return t
 	}
-	return detectBySubstring(line)
+	return detectBySubstring(string(buf))
 }
 
 // detectByName parses JSON and classifies based on the "name" field.
@@ -78,8 +79,12 @@ func detectByName(buf []byte) Type {
 
 // detectBySubstring falls back to substring heuristics when JSON parsing isn't available.
 func detectBySubstring(line string) Type {
-	if strings.Contains(line, "\"name\": \"omkafka\"") {
-		return TypeOmkafka
+	// Heuristic check for "name" field with "omkafka" value, tolerating minor formatting differences
+	if nameIdx := strings.Index(line, "\"name\""); nameIdx != -1 {
+		// Look for the quoted value "omkafka" after the "name" key
+		if omkafkaIdx := strings.Index(line[nameIdx:], "\"omkafka\""); omkafkaIdx != -1 {
+			return TypeOmkafka
+		}
 	}
 	if strings.Contains(line, "submitted") {
 		return TypeInput
