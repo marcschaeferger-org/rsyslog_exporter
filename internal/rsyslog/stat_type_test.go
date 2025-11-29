@@ -50,6 +50,7 @@ func TestDetectBySubstringHeuristics(t *testing.T) {
 		want Type
 	}{
 		{line: "some text \"name\": \"omkafka\" more", want: TypeUnknown},
+		{line: `{"name":"omkafka","submitted":1}`, want: TypeOmkafka},
 		{line: "blah submitted stuff", want: TypeInput},
 		{line: "called.recvmmsg here", want: TypeInputIMDUP},
 		{line: "queue enqueued event", want: TypeQueue},

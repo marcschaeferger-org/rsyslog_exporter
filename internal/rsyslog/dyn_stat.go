@@ -37,19 +37,17 @@ func NewDynStatFromJSON(b []byte) (*DynStat, error) {
 }
 
 func (i *DynStat) ToPoints() []*model.Point {
-	// Preallocate a slice with exact length to avoid multiple allocations from append.
-	points := make([]*model.Point, len(i.Values))
-	idx := 0
+	// Preallocate a slice with capacity to avoid multiple allocations from append.
+	points := make([]*model.Point, 0, len(i.Values))
 	for name, value := range i.Values {
-		points[idx] = &model.Point{
+		points = append(points, &model.Point{
 			Name:        fmt.Sprintf("dynstat_%s", i.Name),
 			Type:        model.Counter,
 			Value:       value,
 			Description: fmt.Sprintf("dynamic statistic bucket %s", i.Name),
 			LabelName:   "counter",
 			LabelValue:  name,
-		}
-		idx++
+		})
 	}
 
 	return points
