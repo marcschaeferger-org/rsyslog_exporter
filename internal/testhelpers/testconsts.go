@@ -24,7 +24,7 @@ const (
 	DynamicStatBucketDescription = "dynamic statistic bucket global"
 	// Common label/value literals used across tests.
 	ResourceUsage  = "resource-usage"
-	MainQueueLabel = "main Queue"
+	MainQueueLabel = "main queue"
 
 	MsgPerHostOpsOverflow   = "msg_per_host.ops_overflow"
 	MsgPerHostNewMetricAdd  = "msg_per_host.new_metric_add"
