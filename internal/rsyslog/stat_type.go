@@ -79,10 +79,10 @@ func detectByName(buf []byte) Type {
 
 // detectBySubstring falls back to substring heuristics when JSON parsing isn't available.
 func detectBySubstring(line string) Type {
-	// Check for "name":"omkafka" allowing for arbitrary whitespace
+	// Heuristic check for "name" field with "omkafka" value, tolerating minor formatting differences
 	if nameIdx := strings.Index(line, "\"name\""); nameIdx != -1 {
-		// Look for "omkafka" after "name"
-		if omkafkaIdx := strings.Index(line[nameIdx:], "omkafka"); omkafkaIdx != -1 {
+		// Look for the quoted value "omkafka" after the "name" key
+		if omkafkaIdx := strings.Index(line[nameIdx:], "\"omkafka\""); omkafkaIdx != -1 {
 			return TypeOmkafka
 		}
 	}
