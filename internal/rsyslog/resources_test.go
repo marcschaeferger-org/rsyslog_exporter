@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	resourceLog = []byte(`{"name":"` + th.ResourceUsage + `","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"oublock":70,"nvcsw":80,"nivcsw":90}`)
+	resourceLog = []byte(`{"name":"` + th.ResourceUsage + `","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"outblock":70,"nvcsw":80,"nivcsw":90}`)
 )
 
 func TestNewResourceFromJSON(t *testing.T) {

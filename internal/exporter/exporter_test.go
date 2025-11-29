@@ -30,7 +30,7 @@ import (
 // Build a fake log line as the exporter expects: 4 columns with the JSON in the 4th.
 func resourceLineJSON(name string, utime int64) []byte {
 	// Use %q to ensure proper JSON string quoting and escaping of name.
-	js := fmt.Sprintf(`{"name":%q,"utime":%d,"stime":0,"maxrss":0,"minflt":0,"majflt":0,"inblock":0,"oublock":0,"nvcsw":0,"nivcsw":0}`, name, utime)
+	js := fmt.Sprintf(`{"name":%q,"utime":%d,"stime":0,"maxrss":0,"minflt":0,"majflt":0,"inblock":0,"outblock":0,"nvcsw":0,"nivcsw":0}`, name, utime)
 	// prefix three columns separated by space to mimic the format processed by handleStatLine
 	return []byte("col1 col2 col3 " + js)
 }
@@ -197,7 +197,7 @@ func TestHandleLineWithResource(t *testing.T) {
 		},
 	}
 
-	resourceLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.ResourceUsage + `","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"oublock":70,"nvcsw":80,"nivcsw":90}`)
+	resourceLog := []byte(`2017-08-30T08:10:04.786350+00:00 some-node.example.org rsyslogd-pstats: {"name":"` + th.ResourceUsage + `","utime":10,"stime":20,"maxrss":30,"minflt":40,"majflt":50,"inblock":60,"outblock":70,"nvcsw":80,"nivcsw":90}`)
 	testHelper(t, resourceLog, tests)
 }
 
