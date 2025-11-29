@@ -37,8 +37,8 @@ func NewDynStatFromJSON(b []byte) (*DynStat, error) {
 }
 
 func (i *DynStat) ToPoints() []*model.Point {
+	// Preallocate a slice with capacity to avoid multiple allocations from append.
 	points := make([]*model.Point, 0, len(i.Values))
-
 	for name, value := range i.Values {
 		points = append(points, &model.Point{
 			Name:        fmt.Sprintf("dynstat_%s", i.Name),

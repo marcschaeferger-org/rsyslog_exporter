@@ -77,11 +77,11 @@ func TestNewResourceFromJSON(t *testing.T) {
 }
 
 func TestResourceToPoints(t *testing.T) {
-	pstat, err := NewResourceFromJSON([]byte(resourceLog))
+	resourceStat, err := NewResourceFromJSON([]byte(resourceLog))
 	if err != nil {
 		t.Fatalf("expected parsing resource stat not to fail, got: %v", err)
 	}
-	points := pstat.ToPoints()
+	points := resourceStat.ToPoints()
 
 	type expectation struct {
 		idx        int

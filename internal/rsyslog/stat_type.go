@@ -53,15 +53,15 @@ func StatType(buf []byte) Type {
 // detectByName parses JSON and classifies based on the "name" field.
 // Returns TypeUnknown if parsing fails or no matching name is found.
 func detectByName(buf []byte) Type {
-	var obj map[string]any
-	if json.Unmarshal(buf, &obj) != nil {
+	var statData map[string]any
+	if json.Unmarshal(buf, &statData) != nil {
 		// Unmarshal failed; classification falls back to substring heuristics.
 		// Returning TypeUnknown here keeps parsing cheap without logging noise.
 		return TypeUnknown
 	}
 	// Directly assert the "name" field to a string to avoid an extra
 	// temporary variable for the intermediate map lookup.
-	s, ok := obj["name"].(string)
+	s, ok := statData["name"].(string)
 	if !ok {
 		return TypeUnknown
 	}
@@ -79,13 +79,7 @@ func detectByName(buf []byte) Type {
 
 // detectBySubstring falls back to substring heuristics when JSON parsing isn't available.
 func detectBySubstring(line string) Type {
-	// Heuristic check for "name" field with "omkafka" value, tolerating minor formatting differences
-	if nameIdx := strings.Index(line, "\"name\""); nameIdx != -1 {
-		// Look for the quoted value "omkafka" after the "name" key
-		if omkafkaIdx := strings.Index(line[nameIdx:], "\"omkafka\""); omkafkaIdx != -1 {
-			return TypeOmkafka
-		}
-	}
+	// Other heuristics below are checked only if JSON parsing failed in detectByName.
 	if strings.Contains(line, "submitted") {
 		return TypeInput
 	}

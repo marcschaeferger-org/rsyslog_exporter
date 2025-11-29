@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "marcschaeferger-org",
+        "projectKey": "marcschaeferger-org_rsyslog_exporter"
+    }
+}
