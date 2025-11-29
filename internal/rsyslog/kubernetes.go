@@ -44,7 +44,7 @@ func NewKubernetesFromJSON(b []byte) (*Kubernetes, error) {
 	var pstat Kubernetes
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode kubernetes stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("failed to decode kubernetes stat `%v`: %w", string(b), err)
 	}
 	matches := apiNameRegexp.FindSubmatch([]byte(pstat.Name))
 	if matches != nil {

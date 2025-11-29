@@ -34,7 +34,7 @@ func NewActionFromJSON(b []byte) (*Action, error) {
 	var pstat Action
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode action stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("failed to decode action stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }

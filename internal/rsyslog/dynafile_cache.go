@@ -37,7 +37,7 @@ func NewDynafileCacheFromJSON(b []byte) (*DfcStat, error) {
 	var pstat DfcStat
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding dynafile cache stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("error decoding dynafile cache stat `%v`: %w", string(b), err)
 	}
 	pstat.Name = strings.TrimPrefix(pstat.Name, "dynafile cache ")
 	return &pstat, nil

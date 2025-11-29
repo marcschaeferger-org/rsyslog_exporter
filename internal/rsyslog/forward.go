@@ -30,7 +30,7 @@ func NewForwardFromJSON(b []byte) (*Forward, error) {
 	var pstat Forward
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode forward stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("failed to decode forward stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }

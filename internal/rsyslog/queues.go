@@ -35,7 +35,7 @@ func NewQueueFromJSON(b []byte) (*Queue, error) {
 	var pstat Queue
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode queue stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("failed to decode queue stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }

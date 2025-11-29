@@ -31,7 +31,7 @@ func NewDynStatFromJSON(b []byte) (*DynStat, error) {
 	var pstat DynStat
 	err := json.Unmarshal(b, &pstat)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding values stat `%v`: %v", string(b), err)
+		return nil, fmt.Errorf("error decoding values stat `%v`: %w", string(b), err)
 	}
 	return &pstat, nil
 }
