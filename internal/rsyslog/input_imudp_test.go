@@ -20,12 +20,12 @@ import (
 )
 
 var (
-	inputIMUDPLog = []byte(`{ "name": "` + th.TestInputIMUDP + `", "origin": "imudp", "called.recvmmsg":1000, "called.recvmsg":2000, "msgs.received":500}`)
+	inputIMUDPLog = []byte(`{ "name": "` + th.TestInputIMDUP + `", "origin": "imudp", "called.recvmmsg":1000, "called.recvmsg":2000, "msgs.received":500}`)
 )
 
 func TestGetInputIMUDP(t *testing.T) {
 	if got := StatType(inputIMUDPLog); got != TypeInputIMDUP {
-		t.Errorf(th.DetectedTypeFmt, TypeInputIMDUP, got)
+		t.Errorf(th.DetectedStatTypeFmt, TypeInputIMDUP, got)
 	}
 	pstat, err := NewInputIMUDPFromJSON(inputIMUDPLog)
 	if err != nil {

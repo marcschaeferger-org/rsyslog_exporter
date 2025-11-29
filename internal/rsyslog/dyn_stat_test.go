@@ -32,7 +32,7 @@ func TestGetDynStat(t *testing.T) {
 	}
 
 	if got := StatType(log); got != TypeDynStat {
-		t.Errorf(th.DetectedTypeFmt, TypeDynStat, got)
+		t.Errorf(th.DetectedStatTypeFmt, TypeDynStat, got)
 	}
 
 	pstat, err := NewDynStatFromJSON(log)
