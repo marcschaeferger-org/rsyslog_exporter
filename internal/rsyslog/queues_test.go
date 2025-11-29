@@ -36,31 +36,31 @@ func TestNewQueueFromJSON(t *testing.T) {
 	}
 
 	if want, got := th.MainQueueLabel, pstat.Name; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 
 	if want, got := int64(10), pstat.Size; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(20), pstat.Enqueued; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(30), pstat.Full; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(40), pstat.DiscardedFull; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(50), pstat.DiscardedNf; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(60), pstat.MaxQsize; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 }
 

@@ -78,7 +78,7 @@ func TestKubernetesToPoints(t *testing.T) {
 	}
 	for i, name := range expectedNames {
 		if points[i].Name != name {
-			t.Errorf(th.WantStringFmt, name, points[i].Name)
+			t.Errorf(th.ExpectedActualStringFmt, name, points[i].Name)
 		}
 		th.AssertEqString(t, "label url", "https://host.domain.tld:6443", points[i].LabelValue)
 	}

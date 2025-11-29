@@ -71,7 +71,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 	for i, exp := range expected {
 		got := points[i]
 		if exp.Name != got.Name {
-			t.Errorf(th.WantStringFmt, exp.Name, got.Name)
+			t.Errorf(th.ExpectedActualStringFmt, exp.Name, got.Name)
 		}
 		th.AssertEqInt(t, exp.Name+" value", exp.Value, got.Value)
 		th.AssertEqString(t, exp.Name+" label", exp.LabelValue, got.LabelValue)
@@ -79,7 +79,7 @@ func TestDynafileCacheToPoints(t *testing.T) {
 			t.Errorf(exp.Name+": expected type %v, got %v", exp.Type, got.Type)
 		}
 		if exp.Description != got.Description {
-			t.Errorf(th.WantStringFmt, exp.Description, got.Description)
+			t.Errorf(th.ExpectedActualStringFmt, exp.Description, got.Description)
 		}
 	}
 }

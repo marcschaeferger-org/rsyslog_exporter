@@ -28,7 +28,7 @@ type tester interface {
 func AssertEqString(t tester, ctx, want, got string) {
 	t.Helper()
 	if want != got {
-		t.Errorf(ctx+": "+WantStringFmt, want, got)
+		t.Errorf(ctx+": "+ExpectedActualStringFmt, want, got)
 	}
 }
 
@@ -36,7 +36,7 @@ func AssertEqString(t tester, ctx, want, got string) {
 func AssertEqInt(t tester, ctx string, want, got int64) {
 	t.Helper()
 	if want != got {
-		t.Errorf(ctx+": "+WantIntFmt, want, got)
+		t.Errorf(ctx+": "+ExpectedActualIntFmt, want, got)
 	}
 }
 

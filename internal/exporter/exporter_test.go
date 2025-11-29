@@ -75,7 +75,7 @@ func testHelper(t *testing.T, line []byte, testCase []*testUnit) {
 		}
 
 		if want, got := item.Val, p.PromValue(); want != got {
-			t.Errorf(th.WantFloatFmt, want, got)
+			t.Errorf(th.ExpectedActualFloatFmt, want, got)
 		}
 	}
 
@@ -322,7 +322,7 @@ func TestHandleUnknown(t *testing.T) {
 	exporter.handleStatLine(unknownLog)
 
 	if want, got := 0, len(exporter.Keys()); want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 }
 
@@ -646,5 +646,35 @@ func TestRunExported(t *testing.T) {
 	re.scanner = bufio.NewScanner(buf)
 	if err := re.Run(context.Background(), true); err != nil {
 		t.Fatalf("Run failed: %v", err)
+	}
+}
+
+// TestDecoderErrorBranches ensures decoder internal error branches are covered by
+// passing malformed JSON that still triggers the StatType selection for each
+// supported type. Each case should result in a decoder error returned by
+// handleStatLine.
+func TestDecoderErrorBranches(t *testing.T) {
+	cases := []struct {
+		name string
+		line []byte
+	}{
+		{"input", []byte("col1 col2 col3 {\"name\":\"x\", \"submitted\":notjson}")},
+		{"input_imudp", []byte("col1 col2 col3 {\"name\":\"x\", \"called.recvmmsg\":notjson}")},
+		{"queue", []byte("col1 col2 col3 {\"name\":\"x\", \"enqueued\":notjson}")},
+		{"resource", []byte("col1 col2 col3 {\"name\":\"x\", \"utime\":notjson}")},
+		{"dynstat", []byte("col1 col2 col3 {\"name\":\"global\", \"origin\":\"dynstats\", \"values\":notjson}")},
+		{"dynafile_cache", []byte("col1 col2 col3 {\"name\":\"dynafile cache x\", \"requests\":notjson}")},
+		{"forward", []byte("col1 col2 col3 {\"name\":\"omfwd\", \"omfwd.sent\":notjson}")},
+		{"kubernetes", []byte("col1 col2 col3 {\"name\":\"mmkubernetes\", \"mmkubernetes.dropped\":notjson}")},
+		{"omkafka", []byte("col1 col2 col3 {\"name\":\"omkafka\", \"submitted\":notjson}")},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			re := New()
+			if err := re.handleStatLine(c.line); err == nil {
+				t.Fatalf("expected decoder error for case %s, got nil", c.name)
+			}
+		})
 	}
 }

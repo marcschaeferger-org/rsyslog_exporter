@@ -35,11 +35,11 @@ func TestGetInput(t *testing.T) {
 	}
 
 	if want, got := "test_input", pstat.Name; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 
 	if want, got := int64(1000), pstat.Submitted; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 }
 
@@ -53,14 +53,14 @@ func TestInputtoPoints(t *testing.T) {
 
 	point := points[0]
 	if want, got := "input_submitted", point.Name; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 
 	if want, got := int64(1000), point.Value; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := "test_input", point.LabelValue; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 }

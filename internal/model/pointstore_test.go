@@ -45,7 +45,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(10), got.Value; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	err = ps.Set(s2)
@@ -59,7 +59,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(5), got.Value; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	s3 := &Point{
@@ -79,7 +79,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(20), got.Value; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	s4 := &Point{
@@ -99,7 +99,7 @@ func TestPointStore(t *testing.T) {
 	}
 
 	if want, got := int64(15), got.Value; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	_, err = ps.Get("no point")

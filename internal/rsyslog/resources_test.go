@@ -36,43 +36,43 @@ func TestNewResourceFromJSON(t *testing.T) {
 	}
 
 	if want, got := th.ResourceUsage, pstat.Name; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 
 	if want, got := int64(10), pstat.Utime; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(20), pstat.Stime; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(30), pstat.Maxrss; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(40), pstat.Minflt; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(50), pstat.Majflt; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(60), pstat.Inblock; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(70), pstat.Outblock; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(80), pstat.Nvcsw; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(90), pstat.Nivcsw; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 }
 

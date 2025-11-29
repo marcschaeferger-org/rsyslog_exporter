@@ -46,86 +46,80 @@ func NewResourceFromJSON(b []byte) (*Resource, error) {
 func (r *Resource) ToPoints() []*model.Point {
 	points := make([]*model.Point, 0, 9)
 
-	points = append(points, &model.Point{
-		Name:        "resource_utime",
-		Type:        model.Counter,
-		Value:       r.Utime,
-		Description: "user time used in microseconds",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_stime",
-		Type:        model.Counter,
-		Value:       r.Stime,
-		Description: "system time used in microseconds",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_maxrss",
-		Type:        model.Gauge,
-		Value:       r.Maxrss,
-		Description: "maximum resident set size",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_minflt",
-		Type:        model.Counter,
-		Value:       r.Minflt,
-		Description: "total minor faults",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_majflt",
-		Type:        model.Counter,
-		Value:       r.Majflt,
-		Description: "total major faults",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_inblock",
-		Type:        model.Counter,
-		Value:       r.Inblock,
-		Description: "filesystem input operations",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_oublock",
-		Type:        model.Counter,
-		Value:       r.Outblock,
-		Description: "filesystem output operations",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_nvcsw",
-		Type:        model.Counter,
-		Value:       r.Nvcsw,
-		Description: "voluntary context switches",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
-
-	points = append(points, &model.Point{
-		Name:        "resource_nivcsw",
-		Type:        model.Counter,
-		Value:       r.Nivcsw,
-		Description: "involuntary context switches",
-		LabelName:   "resource",
-		LabelValue:  r.Name,
-	})
+	points = append(points,
+		&model.Point{
+			Name:        "resource_utime",
+			Type:        model.Counter,
+			Value:       r.Utime,
+			Description: "user time used in microseconds",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_stime",
+			Type:        model.Counter,
+			Value:       r.Stime,
+			Description: "system time used in microseconds",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_maxrss",
+			Type:        model.Gauge,
+			Value:       r.Maxrss,
+			Description: "maximum resident set size",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_minflt",
+			Type:        model.Counter,
+			Value:       r.Minflt,
+			Description: "total minor faults",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_majflt",
+			Type:        model.Counter,
+			Value:       r.Majflt,
+			Description: "total major faults",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_inblock",
+			Type:        model.Counter,
+			Value:       r.Inblock,
+			Description: "filesystem input operations",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_oublock",
+			Type:        model.Counter,
+			Value:       r.Outblock,
+			Description: "filesystem output operations",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_nvcsw",
+			Type:        model.Counter,
+			Value:       r.Nvcsw,
+			Description: "voluntary context switches",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+		&model.Point{
+			Name:        "resource_nivcsw",
+			Type:        model.Counter,
+			Value:       r.Nivcsw,
+			Description: "involuntary context switches",
+			LabelName:   "resource",
+			LabelValue:  r.Name,
+		},
+	)
 
 	return points
 }

@@ -36,27 +36,27 @@ func TestNewActionFromJSON(t *testing.T) {
 	}
 
 	if want, got := th.TestAction, pstat.Name; want != got {
-		t.Errorf(th.WantStringFmt, want, got)
+		t.Errorf(th.ExpectedActualStringFmt, want, got)
 	}
 
 	if want, got := int64(100000), pstat.Processed; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(2), pstat.Failed; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(1), pstat.Suspended; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(1000), pstat.SuspendedDuration; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 
 	if want, got := int64(1), pstat.Resumed; want != got {
-		t.Errorf(th.WantIntFmt, want, got)
+		t.Errorf(th.ExpectedActualIntFmt, want, got)
 	}
 }
 
