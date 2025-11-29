@@ -632,7 +632,7 @@ func TestRunLoopContextCancel(t *testing.T) {
 
 	err = re.runLoop(ctx, true)
 	// check whether the goroutine reported a close error and handle it here
-	if cerr, ok := <-closeErrC; ok && cerr != nil {
+	if cerr := <-closeErrC; cerr != nil {
 		t.Fatalf("failed to close pipe writer: %v", cerr)
 	}
 	if err == nil {
