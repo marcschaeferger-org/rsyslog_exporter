@@ -34,6 +34,6 @@ const (
 	// Common test label values
 	TestAction     = "test_action"
 	TestInput      = "test_input"
-	TestInputIMDUP = "test_input_imdup"
+	TestInputIMDUP = "test_input_imudp"
 	Cluster        = "cluster"
 )
