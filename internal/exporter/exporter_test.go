@@ -670,9 +670,11 @@ func TestDecoderErrorBranches(t *testing.T) {
 	}
 
 	for _, c := range cases {
+		c := c // capture range variable for the closure
 		t.Run(c.name, func(t *testing.T) {
 			re := New()
-			if err := re.handleStatLine(c.line); err == nil {
+			err := re.handleStatLine(c.line)
+			if err == nil {
 				t.Fatalf("expected decoder error for case %s, got nil", c.name)
 			}
 		})
