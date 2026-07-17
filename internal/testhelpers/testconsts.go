@@ -21,8 +21,8 @@ const (
 	ExpectedIndexFmt        = "expected point index %d to exist"
 	ExpectedPointsFmt       = "expected %d points, got %d"
 	ExpectedParseErrFmt     = "expected parsing %s not to fail, got: %v"
-	// Description for dynamic statistic bucket used in test metrics.
-	DynStatBucketDesc = "dynamic statistic bucket global"
+	// Description for dynamic statistics bucket used in test metrics.
+	DynStatBucketDesc = "dynamic statistics bucket global"
 	// Common label/value literals used across tests.
 	ResourceUsage  = "resource-usage"
 	MainQueueValue = "main_queue"
