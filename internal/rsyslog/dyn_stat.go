@@ -44,7 +44,7 @@ func (i *DynStat) ToPoints() []*model.Point {
 			Name:        fmt.Sprintf("dynstat_%s", i.Name),
 			Type:        model.Counter,
 			Value:       value,
-			Description: fmt.Sprintf("dynamic statistic bucket %s", i.Name),
+			Description: fmt.Sprintf("dynamic statistics bucket %s", i.Name),
 			LabelName:   "counter",
 			LabelValue:  name,
 		})
